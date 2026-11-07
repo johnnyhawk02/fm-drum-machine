@@ -77,6 +77,7 @@ export class Sequencer {
     this.ratN = 0;
     this.ratI = 0;
     this.ratVel = 1;
+    this.barOff = -1;
   }
 
   // ---- parameter access (g = flat index: voice v*NP+i, or NV+masterIndex)
@@ -216,6 +217,7 @@ export class Sequencer {
 
   process(outL, outR, n) {
     let off = 0;
+    this.barOff = -1; // sample offset in this block where a bar started, or -1
     while (off < n) {
       let chunk = n - off;
       if (chunk > 32) chunk = 32;
@@ -229,6 +231,7 @@ export class Sequencer {
             this.ratI++;
           } else {
             this.ratN = this.ratI = 0;
+            if (this.stepIdx % 16 === 0 && this.barOff < 0) this.barOff = off;
             this.fireStep();
           }
           continue;

@@ -73,10 +73,28 @@ class ElixirProcessor extends AudioWorkletProcessor {
         this.engine.trigger(m.v, m.vel, m.alt || 0);
         break;
       case 'rec':
-        this.rec = m.on;
+        // m.mode: 0 stop, 1 free, 2 exact loop of m.bars bars (starts at the next bar, or now if stopped)
         this.recN = 0;
+        if (!m.mode) {
+          this.flushRec(true);
+          this.rec = 0;
+          this.recStarted = false;
+        } else if (m.mode === 1) this.rec = 1;
+        else {
+          this.recLeft = Math.round((m.bars * 4 * 60 * sampleRate) / this.engine.master[M.bpm]);
+          if (!s.playing) {
+            s.start();
+            this.lastBars = s.bars;
+          }
+          this.rec = 2;
+        }
         break;
     }
+  }
+
+  flushRec(done) {
+    this.port.postMessage({ t: 'rec', data: this.recBuf.slice(0, this.recN), done });
+    this.recN = 0;
   }
 
   process(inputs, outputs) {
@@ -95,14 +113,27 @@ class ElixirProcessor extends AudioWorkletProcessor {
       }
       this.port.postMessage({ t: 'bar', bars: s.bars });
     }
-    if (this.rec) {
-      for (let i = 0; i < n; i++) {
+    if (this.rec === 2 && s.barOff >= 0) this.rec = 3; // armed loop: starts at this bar
+    if (this.rec === 1 || this.rec === 3) {
+      let i0 = 0;
+      let i1 = n;
+      if (this.rec === 3 && this.recStarted !== true) {
+        i0 = s.barOff;
+        this.recStarted = true;
+      }
+      if (this.rec === 3 && i1 - i0 > this.recLeft) i1 = i0 + this.recLeft;
+      for (let i = i0; i < i1; i++) {
         this.recBuf[this.recN++] = L[i];
         this.recBuf[this.recN++] = R[i];
+        if (this.recN >= this.recBuf.length) this.flushRec(false);
       }
-      if (this.recN >= this.recBuf.length) {
-        this.port.postMessage({ t: 'rec', data: this.recBuf.slice(0, this.recN), playing: s.playing, bars: s.bars, step: s.stepIdx });
-        this.recN = 0;
+      if (this.rec === 3) {
+        this.recLeft -= i1 - i0;
+        if (this.recLeft <= 0) {
+          this.flushRec(true);
+          this.rec = 0;
+          this.recStarted = false;
+        }
       }
     }
     if (++this.statN >= 8) {

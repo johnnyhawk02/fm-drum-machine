@@ -298,6 +298,7 @@ function controlMenu(m, e) {
   }
   items.push(['reset', () => m.set(m.def)]);
   items.push(['assign to perf…', () => assignDialog(m.key)]);
+  items.push(['midi learn', () => learnMidi(m.key)]);
   menu(items, e.clientX, e.clientY);
 }
 

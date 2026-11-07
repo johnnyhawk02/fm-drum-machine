@@ -1,11 +1,13 @@
 {
-  "name": "elixir-fm",
+  "name": "fm-dm",
   "version": "0.1.0",
   "private": true,
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "test": "node test/render.test.mjs && node test/seq.test.mjs",
+    "test": "node test/render.test.mjs && node test/seq.test.mjs && node test/presets.test.mjs",
+    "build": "node build.mjs",
+    "smoke": "node build.mjs && node test/smoke.mjs",
     "render": "node test/render.test.mjs renders"
   }
 }

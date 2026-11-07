@@ -61,7 +61,7 @@ function buildHeader() {
   const hd = $('hdr');
   hd.innerHTML = '';
   hd.append(h('div', 'logo', 'fm dm'));
-  hd.append(btn('options', 'sm', () => openOptions()));
+  hd.append(btn('options', 'sm', () => openOptions()), btn('?', 'sm', () => openHelp()));
   const rnd = h('div', 'rnd');
   rnd.id = 'rnd';
   hd.append(rnd);
@@ -117,5 +117,7 @@ function boot() {
   if (typeof initMidi === 'function') initMidi();
   requestAnimationFrame(frame);
   document.addEventListener('contextmenu', (e) => e.preventDefault());
+  if ('serviceWorker' in navigator && /^(https:|http:\/\/localhost)/.test(location.href)) navigator.serviceWorker.register('sw.js').catch(() => {});
+  window.__fmdm = { S, applyPreset, BUILTIN_PRESETS, togglePlay, showPage };
 }
 boot();

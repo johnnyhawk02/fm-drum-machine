@@ -1,0 +1,80 @@
+// fm dm — keyboard: space play, 1-7 randomisers, u undo, z..n mutes, a..h echo mutes, q..y reverb mutes,
+// shift+1-6 voice page, [ ] pages, o presets, / search, ? help, esc closes, arrows turn the selected knob.
+
+function bindKeys() {
+  addEventListener('keydown', (e) => {
+    const t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) {
+      if (e.key === 'Escape') t.blur();
+      return;
+    }
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const k = e.key.toLowerCase();
+    const digit = /^Digit([1-9])$/.exec(e.code);
+    if (e.key === 'Escape') {
+      if (!closeDialog()) closeMenu();
+      return;
+    }
+    if (e.key === ' ') {
+      e.preventDefault();
+      togglePlay();
+      return;
+    }
+    if (digit && e.shiftKey) {
+      const v = +digit[1] - 1;
+      if (v < 6) showVoice(v);
+      return;
+    }
+    if (digit) {
+      const i = +digit[1] - 1;
+      if (i < R_ORDER.length) runRandom(R_ORDER[i]);
+      return;
+    }
+    if (e.key === '?') return openHelp();
+    if (e.key === '/') {
+      e.preventDefault();
+      showPage('prst');
+      setTimeout(() => prstSearch && prstSearch.focus(), 0);
+      return;
+    }
+    if (k === 'o') return showPage('prst');
+    if (k === 'u') return undo();
+    if (e.key === '[' || e.key === ']') {
+      const names = PAGES.map((p) => p[0]);
+      const i = names.indexOf(curPage);
+      showPage(names[(i + (e.key === ']' ? 1 : names.length - 1)) % names.length]);
+      return;
+    }
+    const tog = (id) => setG(NV_ + M[id], getG(NV_ + M[id]) >= 0.5 ? 0 : 1);
+    let i = MUTE_KEYS.indexOf(k);
+    if (i >= 0) return tog('mute' + i);
+    i = ECHO_KEYS.indexOf(k);
+    if (i >= 0) return tog('eMute' + i);
+    i = VERB_KEYS.indexOf(k);
+    if (i >= 0) return tog('rMute' + i);
+    if (e.key.startsWith('Arrow') && S.sel) {
+      e.preventDefault();
+      const m = model(S.sel);
+      nudge(m, e.key === 'ArrowUp' || e.key === 'ArrowRight' ? 1 : -1, e.shiftKey);
+    }
+  });
+}
+
+// ---- help, in the same LCD look
+const HELP = [
+  ['play', 'space plays and stops. rec records a wav: free, or an exact loop of 1 to 128 bars starting on the next bar.'],
+  ['perf', 'the 24 knobs on the left are midi cc 1 to 24 on any channel. right-click any knob or fader to assign it to a perf knob, give it a step sequencer, or reset it. double-click resets.'],
+  ['step sequencer', 'click a knob, then paint steps in the strip under perf. length 2 to 64 (pages of 16), slew, speed (a 16th up to 8 bars a step), depth, shapes and randoms. groove makes it follow the swing. the knob ring shows its movement as a lit arc.'],
+  ['randomise', '1 everything, 2 kit, 3 alter, 4 pattern, 5 crossfeed, 6 random fx, 7 alter fx, u undo. drag a button up or down to set its depth. hold it for its ranges and chances. options: randomise on next bar, wild ranges.'],
+  ['mutes', 'z x c v b n mute the drums. a s d f g h mute echo sends, q w e r t y reverb sends. mutes act on notes, so tails ring on.'],
+  ['pages', '[ and ] step through beat, voice, fx, mix, mstr, prst. shift+1 to 6 opens a drum on the voice page. o presets, / search presets.'],
+  ['knobs', 'drag up and down (shift for fine), scroll, or click then use the arrow keys.'],
+  ['beat', 'genre, beat, energy, fills and density make the pattern. rush rolls one drum faster near the end of every n bars while the others drop out and a high-pass rises along the rush curve.'],
+  ['midi', 'cc 1-24 perf knobs, cc 25-28 the selected sequencer length, slew, speed, depth. right-click a knob and pick midi learn to map your own cc.'],
+];
+function openHelp() {
+  const body = h('div');
+  body.style.cssText = 'display:grid;grid-template-columns:170px 1fr;gap:8px 18px;font-size:21px;max-width:860px';
+  for (const [a, b] of HELP) body.append(h('b', '', a.toUpperCase()), h('div', '', b));
+  dialog('help', body);
+}

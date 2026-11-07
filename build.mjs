@@ -33,8 +33,13 @@ const page = read('src/index.src.html')
 
 mkdirSync(new URL('dist/', import.meta.url), { recursive: true });
 writeFileSync(new URL('dist/index.html', import.meta.url), page);
-for (const f of ['manifest.webmanifest', 'icon.svg', 'sw.js', 'help.html']) {
-  const src = new URL(`src/static/${f}`, import.meta.url);
-  if (existsSync(src)) copyFileSync(src, new URL(`dist/${f}`, import.meta.url));
-}
+for (const f of ['manifest.webmanifest', 'icon.svg', 'icon-512.png']) copyFileSync(new URL(`src/static/${f}`, import.meta.url), new URL(`dist/${f}`, import.meta.url));
+// the service worker's cache name changes with every build, so a new page replaces the old one
+const ver = Date.now().toString(36);
+writeFileSync(new URL('dist/sw.js', import.meta.url), read('src/static/sw.js').replace('@VER@', ver));
+// help page: the same help as the ? dialog, in the LCD look
+const HELP = new Function(`return ${/const HELP = (\[[\s\S]*?\n\]);/.exec(read('src/ui/keys.js'))[1]}`)();
+writeFileSync(new URL('dist/help.html', import.meta.url), `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>fm dm help</title>
+<style>${fontCss}body{margin:0;background:#0b0c0a;padding:16px;font-family:VT323,monospace;color:#17200e}main{max-width:900px;margin:0 auto;background:#a7b58c;border-radius:10px;padding:20px 28px;font-size:22px}h1{font-weight:normal;letter-spacing:.1em}h2{font-weight:normal;letter-spacing:.14em;text-transform:uppercase;border-top:2px solid #17200e;padding-top:8px;margin:18px 0 4px;font-size:22px}a{color:inherit}</style>
+<main><h1>FM DM · HELP</h1><p><a href="./">back to the drum machine</a></p>${HELP.map(([a, b]) => `<h2>${a}</h2><p>${b}</p>`).join('')}</main>`);
 console.log(`dist/index.html: ${(page.length / 1024).toFixed(1)} KB, ${presets.length} built-in presets`);

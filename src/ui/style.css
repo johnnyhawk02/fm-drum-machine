@@ -12,7 +12,7 @@
 html, body { margin: 0; height: 100%; background: var(--bezel); overflow: hidden; overscroll-behavior: none; touch-action: none; }
 /* the fixed view clips the unscaled stage, so it never widens the page on phones */
 #view { position: fixed; inset: 0; overflow: hidden; }
-#turn { display: none; position: absolute; inset: 0; z-index: 100; place-items: center; background: var(--bezel); color: var(--lcd); font-size: 30px; text-align: center; padding: 20px; }
+#turn { display: none; position: absolute; inset: 0; z-index: 100; place-content: center; justify-items: center; background: var(--bezel); color: var(--lcd); font-size: 30px; text-align: center; padding: 20px; }
 @media (orientation: portrait) and (pointer: coarse) { #turn { display: grid; } }
 body { font-family: var(--font); color: var(--ink); -webkit-user-select: none; user-select: none; }
 button, input, select { font: inherit; color: inherit; }
@@ -212,3 +212,12 @@ input[type=text], input[type=search] { background: transparent; border: 2px soli
 .cp-side input { width: 52px; font: inherit; font-size: 20px; color: var(--ink); background: transparent; border: 1.5px solid var(--ink); border-radius: 3px; padding: 0 4px; }
 .cp-side input.cp-hex { width: 90px; }
 .cp-side input::-webkit-inner-spin-button { display: none; }
+
+/* ---- TEMPORARY quick pad: full screen, real pixels (outside the scaled stage) */
+#quick { position: fixed; inset: 0; z-index: 300; background: var(--lcd); color: var(--ink); font-family: var(--font);
+  display: flex; flex-direction: column; padding: max(10px, env(safe-area-inset-top)) 10px 10px; gap: 10px; }
+#quick .qstatus { font-size: 26px; text-align: center; border: 2px solid var(--ink); border-radius: 4px; padding: 4px; }
+#quick .qgrid { flex: 1; display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); grid-auto-rows: 1fr; gap: 10px; }
+#quick .qb { height: auto; min-height: 56px; font-size: 24px; white-space: normal; line-height: 1.1; padding: 4px; text-transform: lowercase; touch-action: manipulation; }
+#quick .qb.on { background: var(--spot); border-color: var(--spot); color: var(--lcd); }
+#quick .qb.save { background: var(--ink); color: var(--lcd); }

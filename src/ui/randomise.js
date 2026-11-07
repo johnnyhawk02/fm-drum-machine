@@ -21,8 +21,41 @@ const RND = {
   crossfeed: { label: 'crossfeed', depth: 0.6, chance: {} },
   fx: { label: 'random fx', depth: 1, chance: { echo: 1, reverb: 1, sends: 1, master: 0.3 } },
   alterfx: { label: 'alter fx', depth: 0.3, chance: { echo: 1, reverb: 1, sends: 1, master: 1 } },
+  motion: { label: 'motion', depth: 0.6, chance: {} },
 };
-const R_ORDER = ['everything', 'kit', 'alter', 'pattern', 'crossfeed', 'fx', 'alterfx'];
+const R_ORDER = ['everything', 'kit', 'alter', 'pattern', 'crossfeed', 'fx', 'alterfx', 'motion'];
+
+// motion: four random knobs each get a random step sequence at a different speed (1/16, 1/8, 1/4,
+// 1 bar) with a little random slew. Replaces the lanes the last motion made, keeps your own lanes.
+const MOTION_POOL = ['tune', 'fmLvl', 'fb', 'fmEnd', 'dA', 'dB', 'lB', 'pAmt', 'pDec', 'nCut', 'nDec', 'fCut', 'fRes', 'aDec', 'sEcho', 'sRev'];
+function rndMotion(depth) {
+  S.lanes = S.lanes.map((ln) => (ln && ln.motion ? null : ln));
+  const used = new Set();
+  const speeds = [0, 1, 2, 4].sort(() => rr() - 0.5); // indexes into SPEEDS
+  for (let k = 0; k < 4; k++) {
+    let g = -1;
+    for (let tries = 0; tries < 50; tries++) {
+      const v = Math.floor(rr() * 6);
+      const id = MOTION_POOL[Math.floor(rr() * MOTION_POOL.length)];
+      g = v * NP + P[id];
+      if (!used.has(g) && laneOf(g) < 0) break;
+      g = -1;
+    }
+    if (g < 0) continue;
+    used.add(g);
+    const l = newLane(g);
+    if (l < 0) break;
+    const ln = S.lanes[l];
+    ln.motion = true;
+    ln.len = rr() < 0.5 ? 16 : 8;
+    ln.steps.fill(0);
+    laneRandom(LANE_RANDOMS[Math.floor(rr() * LANE_RANDOMS.length)], ln.len, ln.steps, (rr() * 1e9) | 0);
+    ln.speed = speeds[k];
+    ln.slew = 0.1 + rr() * 0.45;
+    ln.depth = (rr() < 0.5 ? -1 : 1) * (0.2 + rr() * 0.4) * depth / 0.6;
+    ln.groove = true;
+  }
+}
 const rr = () => Math.random();
 
 function rndVoice(v, depth, chance, alter) {
@@ -145,6 +178,7 @@ function runRandom(name) {
   else if (name === 'crossfeed') rndXfeed(d);
   else if (name === 'fx') rndFx(d, r.chance, false);
   else if (name === 'alterfx') rndFx(d, r.chance, true);
+  else if (name === 'motion') rndMotion(d);
   // auto-level once the new sound is settled, and only for drums whose sound actually changed
   if (S.opts.autoLevel) {
     const skip = new Set([P.level, P.trim, P.pan, P.sEcho, P.sRev, P.sDist, P.sRing]); // mix, not sound

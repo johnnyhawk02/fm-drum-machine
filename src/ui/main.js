@@ -69,6 +69,7 @@ function buildHeader() {
   hd.innerHTML = '';
   hd.append(h('div', 'logo', 'fm dm'));
   hd.append(btn('options', 'sm', () => openOptions()), btn('?', 'sm', () => openHelp()));
+  hd.append(btn('quick', 'sm', () => openQuick())); // TEMPORARY quick pad
   const rnd = h('div', 'rnd');
   rnd.id = 'rnd';
   hd.append(rnd);
@@ -148,6 +149,7 @@ function frame() {
 }
 
 function boot() {
+  { const t = $('turn'); const b = btn('open quick pad', 'b', () => openQuick()); b.style.marginTop = '20px'; t.innerHTML = '<div>turn your phone sideways</div>'; t.append(b); } // TEMPORARY
   setLcdColour(lcdColour(), false);
   try { if (localStorage.getItem('fmdm.autoLevel') === '0') S.opts.autoLevel = false; } catch {}
   fitStage();

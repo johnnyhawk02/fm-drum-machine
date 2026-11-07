@@ -3,6 +3,8 @@
 //   c++ -std=c++17 -O2 -Iengine engine/*.cpp test/render.cpp -o render && ./render out/
 #include "Sequencer.h"
 #include <cstdio>
+#include <cstdlib>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -10,13 +12,14 @@ using namespace fmdm;
 
 static void writeRaw(const std::string& path, const std::vector<float>& L, const std::vector<float>& R) {
     FILE* f = std::fopen(path.c_str(), "wb");
-    if (!f) { std::perror(path.c_str()); return; }
+    if (!f) { std::perror(path.c_str()); std::exit(1); }
     for (size_t i = 0; i < L.size(); i++) { std::fwrite(&L[i], 4, 1, f); std::fwrite(&R[i], 4, 1, f); }
     std::fclose(f);
 }
 
 int main(int argc, char** argv) {
     const std::string dir = argc > 1 ? argv[1] : ".";
+    std::filesystem::create_directories(dir);
     const int SR = 48000;
     for (int v = 0; v < 6; v++)
         for (int alt = 0; alt <= (v == 5 ? 1 : 0); alt++) {

@@ -47,6 +47,8 @@ header .rnd .rndopen { height: 36px; min-width: 150px; font-size: 20px; }
 header .rnddrop { position: absolute; left: 0; top: 42px; z-index: 60; display: flex; flex-direction: column; gap: 6px;
   background: var(--lcd); border: 2px solid var(--ink); border-radius: 4px; padding: 8px; min-width: 190px; }
 header .rnddrop[hidden] { display: none; }
+header .rnddrop .chk.mental { font-size: 20px; padding: 2px 4px; }
+header .rnddrop .chk.mental.on { color: var(--spot); }
 header .rnddrop .b { position: relative; height: 38px; font-size: 20px; text-align: left; padding: 0 10px; }
 header .rnddrop .b i { position: absolute; left: 0; bottom: 0; height: 3px; background: currentColor; opacity: .8; }
 header .sp { flex: 1; }

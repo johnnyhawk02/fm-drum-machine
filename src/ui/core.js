@@ -22,7 +22,7 @@ const S = {
   sel: null, // selected control key
   playing: false,
   status: null,
-  opts: { nextBar: false, wild: false, autoLevel: true },
+  opts: { nextBar: false, wild: false, autoLevel: true, mental: false },
 };
 S.base.set(kitToArray(INIT_KIT), 0);
 S.base.set(defaultMaster(), NV_);

@@ -19,6 +19,12 @@ function openQuick() {
     play.classList.toggle('on', S.playing);
   }, S.playing ? 'on' : '');
   for (const name of R_ORDER) big(RND[name].label, () => { runRandom(name); say(RND[name].label + ' done'); });
+  const gm = big('go mental: off', () => {
+    S.opts.mental = !S.opts.mental;
+    gm.textContent = 'go mental: ' + (S.opts.mental ? 'on' : 'off');
+    gm.classList.toggle('on', S.opts.mental);
+  }, S.opts.mental ? 'on' : '');
+  gm.textContent = 'go mental: ' + (S.opts.mental ? 'on' : 'off');
   big('undo', () => { undo(); say('undone'); });
   big('🎲 name', () => say('next name: ' + rollName()));
   big('save as preset', () => { saveNew(); say('saved ' + curPreset + ' · next: ' + nextName); }, 'save');

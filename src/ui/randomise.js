@@ -32,7 +32,7 @@ const MOTION_POOL = ['tune', 'fmLvl', 'fb', 'fmEnd', 'dA', 'dB', 'lB', 'pAmt', '
 function rndMotion(depth) {
   S.lanes = S.lanes.map((ln) => (ln && ln.motion ? null : ln));
   const used = new Set();
-  const count = 4 + Math.floor(rr() * 5);
+  const count = S.opts.mental ? 10 + Math.floor(rr() * 7) : 4 + Math.floor(rr() * 5);
   // indexes into SPEEDS: each rate once, in random order, then random ones for the rest
   const speeds = [0, 1, 2, 4, 5, 6].sort(() => rr() - 0.5);
   while (speeds.length < count) speeds.push([0, 1, 2, 4, 5, 6][Math.floor(rr() * 6)]);
@@ -158,19 +158,19 @@ function rndXfeed(depth) {
   for (let s = 0; s < 6; s++) for (let d = 0; d < 6; d++) S.base[NV_ + M[`xa${s}${d}`]] = 0;
   // drop sequences the last xmod randomise made
   S.lanes = S.lanes.map((ln) => (ln && ln.xmod ? null : ln));
-  const n = 1 + Math.floor(rr() * (2 + depth * 4));
+  const n = S.opts.mental ? 8 + Math.floor(rr() * 10) : 1 + Math.floor(rr() * (2 + depth * 4));
   const set = [];
   for (let i = 0; i < n; i++) {
     const s = Math.floor(rr() * 6);
     let d = Math.floor(rr() * 5);
     if (d >= s) d++;
-    setM(`xa${s}${d}`, (0.05 + rr() * 0.45) * depth);
+    setM(`xa${s}${d}`, (S.opts.mental ? 0.2 + rr() * 0.7 : 0.05 + rr() * 0.45) * depth);
     setM(`xt${s}${d}`, Math.floor(rr() * 3));
     if (!set.includes(`xa${s}${d}`)) set.push(`xa${s}${d}`);
   }
   // at least half of the routings get a step sequence on their depth
   set.sort(() => rr() - 0.5);
-  const nSeq = Math.ceil(set.length / 2) + (rr() < 0.5 ? Math.floor(rr() * (set.length / 2)) : 0);
+  const nSeq = S.opts.mental ? set.length : Math.ceil(set.length / 2) + (rr() < 0.5 ? Math.floor(rr() * (set.length / 2)) : 0);
   for (let i = 0; i < nSeq && i < set.length; i++) {
     const g = NV_ + M[set[i]];
     if (laneOf(g) >= 0) continue;
@@ -192,6 +192,7 @@ function rndPattern(depth, chance) {
   S.gen.beat = Math.floor(rr() * 64);
   if (rr() < (chance.energy ?? 1)) S.gen.energy = clamp(S.gen.energy + (0.25 + rr() * 0.6 - S.gen.energy) * depth, 0, 1);
   if (rr() < (chance.fills ?? 1)) S.gen.fills = clamp(S.gen.fills + (rr() * 0.7 - S.gen.fills) * depth, 0, 1);
+  if (S.opts.mental) { S.gen.energy = 0.7 + rr() * 0.3; S.gen.fills = 0.6 + rr() * 0.4; } // busy
   S.gen.seed = Math.floor(rr() * 1e6);
   setM('bpm', 90 + Math.round(rr() * 90)); // any tempo from 90 to 180
   redraw('m.bpm');
@@ -207,19 +208,25 @@ function runRandom(name) {
   const r = RND[name];
   pushUndo();
   const before = S.base.slice(0, 6 * NP);
-  const d = r.depth;
+  const mental = S.opts.mental;
+  const wild0 = S.opts.wild;
+  if (mental) S.opts.wild = true;
+  const d = mental ? 1 : r.depth;
+  const ch = (c) => (mental ? Object.fromEntries(Object.keys(c).map((k) => [k, 1])) : c);
   if (name === 'everything') {
-    rndPattern(d, { genre: 0.6 });
-    rndKit(d, RND.kit.chance, false);
-    rndFx(d, RND.fx.chance, false);
+    rndPattern(d, mental ? { genre: 1 } : { genre: 0.6 });
+    rndKit(d, ch(RND.kit.chance), false);
+    rndFx(d, ch(RND.fx.chance), false);
     rndMix(d);
-  } else if (name === 'kit') rndKit(d, r.chance, false);
-  else if (name === 'alter') rndKit(d, r.chance, true);
-  else if (name === 'pattern') rndPattern(d, r.chance);
+    if (mental) { rndXfeed(1); rndMotion(1); }
+  } else if (name === 'kit') rndKit(d, ch(r.chance), false);
+  else if (name === 'alter') rndKit(d, ch(r.chance), true);
+  else if (name === 'pattern') rndPattern(d, ch(r.chance));
   else if (name === 'crossfeed') rndXfeed(d);
-  else if (name === 'fx') rndFx(d, r.chance, false);
-  else if (name === 'alterfx') rndFx(d, r.chance, true);
+  else if (name === 'fx') rndFx(d, ch(r.chance), false);
+  else if (name === 'alterfx') rndFx(d, ch(r.chance), true);
   else if (name === 'motion') rndMotion(d);
+  S.opts.wild = wild0;
   // auto-level once the new sound is settled, and only for drums whose sound actually changed
   if (S.opts.autoLevel) {
     const skip = new Set([P.level, P.trim, P.pan, P.sEcho, P.sRev, P.sDist, P.sRing]); // mix, not sound
@@ -229,6 +236,8 @@ function runRandom(name) {
       for (let i = 0; i < NP && !ch; i++) if (!skip.has(i) && S.base[v * NP + i] !== before[v * NP + i]) ch = true;
       changed.push(ch);
     }
+    // xmod and knob sequences change how loud a drum gets, so those level every drum
+    if (name === 'crossfeed' || name === 'motion' || (name === 'everything' && mental)) changed.fill(true);
     autoLevel(changed);
   }
   sendAll(S.opts.nextBar && S.playing);
@@ -296,6 +305,10 @@ function buildRandomisers(host) {
   watch('undo', () => (u.disabled = !undoStack.length));
   u.disabled = true;
   wrap.append(u);
+  // go mental: every randomiser at full depth, wild ranges, all chances, far more of everything
+  const gm = chk('go mental', () => S.opts.mental, (v) => (S.opts.mental = v));
+  gm.classList.add('mental');
+  wrap.append(gm);
 }
 
 function rndDialog(name) {

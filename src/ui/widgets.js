@@ -1,4 +1,4 @@
-// Elixir FM — knobs, faders, number boxes, menus, dialogs.
+// fm dm — knobs, faders, number boxes, menus, dialogs.
 
 // a control model for any key: engine param ('v0.tune', 'm.bpm') or generator option ('gen.energy')
 function model(key) {

@@ -1,4 +1,4 @@
-// Elixir FM — top-level engine: six voices, crossfeed, sends, FX, master chain.
+// fm dm — top-level engine: six voices, crossfeed, sends, FX, master chain.
 // process() allocates nothing. Parameters live in two flat Float32Arrays:
 //   params  NUM_VOICES * NP  (voice blocks)
 //   master  MP               (fx, mixer, crossfeed)

@@ -1,4 +1,4 @@
-// Elixir FM — page shell: header, pages, stage scaling, frame loop, transport.
+// fm dm — page shell: header, pages, stage scaling, frame loop, transport.
 
 let stageScale = 1;
 function fitStage() {
@@ -60,7 +60,7 @@ async function togglePlay() {
 function buildHeader() {
   const hd = $('hdr');
   hd.innerHTML = '';
-  hd.append(h('div', 'logo', 'elixir<small>fm</small>'));
+  hd.append(h('div', 'logo', 'fm dm'));
   hd.append(btn('options', 'sm', () => openOptions()));
   const rnd = h('div', 'rnd');
   rnd.id = 'rnd';

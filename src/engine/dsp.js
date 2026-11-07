@@ -1,4 +1,4 @@
-// Elixir FM — small DSP building blocks. No allocation after construction.
+// fm dm — small DSP building blocks. No allocation after construction.
 
 export const SIN_BITS = 12;
 export const SIN_SIZE = 1 << SIN_BITS;

@@ -1,4 +1,4 @@
-// Elixir FM — effects. Echo, reverb (FDN), waveshaper, compressor.
+// fm dm — effects. Echo, reverb (FDN), waveshaper, compressor.
 // All buffers allocated in constructors.
 
 import { softclip, OnePole, sinc } from './dsp.js';

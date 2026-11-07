@@ -1,4 +1,4 @@
-// Elixir FM — voice parameter spec.
+// fm dm — voice parameter spec.
 // Every voice uses the same flat block of NP parameters, stored as real values
 // (Hz, ms, 0..1 amounts). The UI maps knob position 0..1 <-> value via `curve`.
 // Layout is fixed so the block ports 1:1 to a C++ struct / float array.

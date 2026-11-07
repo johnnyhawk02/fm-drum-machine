@@ -1,4 +1,4 @@
-/* Elixir FM — grey-green LCD in a black bezel. One fixed 1440x900 stage, scaled to fit the window. */
+/* fm dm — grey-green LCD in a black bezel. One fixed 1440x900 stage, scaled to fit the window. */
 :root {
   --lcd: #a7b58c;
   --lcd-hi: #b3c098;

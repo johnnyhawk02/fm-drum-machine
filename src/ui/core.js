@@ -1,4 +1,4 @@
-// Elixir FM — page state, audio connection, control registry, formatting, undo.
+// fm dm — page state, audio connection, control registry, formatting, undo.
 
 const $ = (id) => document.getElementById(id);
 function h(tag, cls, html) {

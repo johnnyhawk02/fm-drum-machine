@@ -1,4 +1,4 @@
-// Elixir FM — sample-accurate step sequencer, groove, rush and knob step
+// fm dm — sample-accurate step sequencer, groove, rush and knob step
 // sequencers ("lanes"). Wraps an Engine. No allocation in process().
 
 import { NUM_VOICES, NP, PARAMS, MPARAMS, MP, M, RUSH_EVERY, SPEEDS } from '../engine/params.js';

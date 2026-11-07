@@ -1,4 +1,4 @@
-// Elixir FM — starting kit. Each voice lists only the values that differ from
+// fm dm — starting kit. Each voice lists only the values that differ from
 // the parameter defaults.
 
 import { PARAMS, P, NUM_VOICES, NP } from './params.js';

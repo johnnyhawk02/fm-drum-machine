@@ -1,4 +1,4 @@
-// Elixir FM — AudioWorklet host for Engine + Sequencer.
+// fm dm — AudioWorklet host for Engine + Sequencer.
 // The build prepends the engine and sequencer code to this file.
 
 class ElixirProcessor extends AudioWorkletProcessor {

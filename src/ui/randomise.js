@@ -1,4 +1,4 @@
-// Elixir FM — randomisers. Each has a depth (drag the button up/down, 10..100%) and per-group
+// fm dm — randomisers. Each has a depth (drag the button up/down, 10..100%) and per-group
 // chances (hold the button). Drum-safe ranges stay near the starting kit; wild uses full ranges.
 
 const R_GROUPS = {

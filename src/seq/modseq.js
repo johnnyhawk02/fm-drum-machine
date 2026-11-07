@@ -1,4 +1,4 @@
-// Elixir FM — step-sequencer lane shapes and random fills. Values -1..1.
+// fm dm — step-sequencer lane shapes and random fills. Values -1..1.
 import { Rng } from '../engine/dsp.js';
 
 export const LANE_SHAPES = ['ramp up', 'ramp dn', 'tri', 'square', 'sine'];

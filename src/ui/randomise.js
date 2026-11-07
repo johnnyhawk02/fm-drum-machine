@@ -150,7 +150,22 @@ function runRandom(name) {
   if (S.opts.nextBar && S.playing) toast(`${r.label}: on next bar`);
 }
 
-function buildRandomisers(wrap) {
+// one "randomise" button in the title line opens a drop-down with every randomiser and undo
+function buildRandomisers(host) {
+  const open = btn('randomise ▾', 'sm rndopen');
+  const wrap = h('div', 'rnddrop');
+  wrap.hidden = true;
+  const show = (on) => {
+    wrap.hidden = !on;
+    open.classList.toggle('on', on);
+  };
+  open.addEventListener('click', () => show(wrap.hidden));
+  // close on a press anywhere else, or Escape (dialogs opened from the list stay usable)
+  document.addEventListener('pointerdown', (e) => {
+    if (!wrap.hidden && !wrap.contains(e.target) && !open.contains(e.target) && !e.target.closest('.dlg')) show(false);
+  });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') show(false); });
+  host.append(open, wrap);
   for (const name of R_ORDER) {
     const r = RND[name];
     const b = btn(r.label, 'sm');
@@ -180,7 +195,10 @@ function buildRandomisers(wrap) {
       const up = () => {
         clearTimeout(holdT);
         b.removeEventListener('pointermove', mv);
-        if (!moved && !held) runRandom(name);
+        if (!moved && !held) {
+          runRandom(name);
+          show(false);
+        }
       };
       b.addEventListener('pointermove', mv);
       b.addEventListener('pointerup', up, { once: true });
@@ -188,8 +206,7 @@ function buildRandomisers(wrap) {
     b.dataset.rnd = name;
     wrap.append(b);
   }
-  const u = btn('undo', 'sm', undo);
-  u.style.height = '36px';
+  const u = btn('undo', 'sm', () => { undo(); show(false); });
   watch('undo', () => (u.disabled = !undoStack.length));
   u.disabled = true;
   wrap.append(u);

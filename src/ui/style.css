@@ -42,11 +42,13 @@ header { display: flex; align-items: center; gap: 8px; padding: 12px 18px 0; pos
 header .logo { width: 108px; height: 40px; margin-right: 8px; flex: none; font-size: 0; background: var(--ink);
   -webkit-mask: url(logo.png) center / contain no-repeat; mask: url(logo.png) center / contain no-repeat; }
 header .logo small { font-size: 18px; opacity: .6; margin-left: 4px; }
-header .rnd { display: flex; gap: 6px; margin-left: 10px; }
-header .rnd .b { min-width: 84px; height: 36px; padding: 8px 8px 0; font-size: 18px; }
-header .rnd .b::before { content: 'rnd'; position: absolute; left: 4px; top: 0; font-size: 13px; line-height: 13px; opacity: .6; }
-header .rnd .b[data-rnd=everything] { min-width: 110px; }
-header .rnd .b i { position: absolute; left: 0; bottom: 0; height: 3px; background: currentColor; opacity: .8; }
+header .rnd { position: relative; margin-left: 10px; }
+header .rnd .rndopen { height: 36px; min-width: 150px; font-size: 20px; }
+header .rnddrop { position: absolute; left: 0; top: 42px; z-index: 60; display: flex; flex-direction: column; gap: 6px;
+  background: var(--lcd); border: 2px solid var(--ink); border-radius: 4px; padding: 8px; min-width: 190px; }
+header .rnddrop[hidden] { display: none; }
+header .rnddrop .b { position: relative; height: 38px; font-size: 20px; text-align: left; padding: 0 10px; }
+header .rnddrop .b i { position: absolute; left: 0; bottom: 0; height: 3px; background: currentColor; opacity: .8; }
 header .sp { flex: 1; }
 header .play { min-width: 130px; }
 header .play.on, #rec.on { background: var(--spot); border-color: var(--spot); color: var(--lcd); }

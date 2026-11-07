@@ -9,7 +9,7 @@ import { kitToArray, INIT_KIT } from './kits.js';
 import { Echo, Reverb, Distortion, Compressor } from './fx.js';
 import { Svf, OnePole, sinc, softclip } from './dsp.js';
 
-const CTRL = 32;
+const E_CTRL = 32;
 
 export class Engine {
   constructor(sr = 48000, seed = 1) {
@@ -80,7 +80,7 @@ export class Engine {
     const pm = this.prevMono;
     for (let s = 0; s < n; s++) {
       if (this.ctr === 0) this.control();
-      this.ctr = (this.ctr + 1) % CTRL;
+      this.ctr = (this.ctr + 1) % E_CTRL;
 
       // crossfeed from previous sample's voice outputs
       for (let d = 0; d < NUM_VOICES; d++) {
@@ -190,4 +190,4 @@ export class Engine {
   }
 }
 
-export { NP, MP };
+

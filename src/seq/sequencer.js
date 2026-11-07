@@ -243,4 +243,5 @@ export class Sequencer {
   }
 }
 
-export { norm, denorm, NV };
+export { norm, denorm };
+export { NV };

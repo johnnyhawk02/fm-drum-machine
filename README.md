@@ -1,4 +1,4 @@
-# Elixir FM
+# Elixir FM (fm-drum-machine)
 
 A six-voice FM drum machine for the browser. Plain JavaScript, AudioWorklet, no dependencies.
 

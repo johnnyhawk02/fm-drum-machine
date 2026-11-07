@@ -4,7 +4,7 @@
 import { P, NP } from './params.js';
 import { sinc, softclip, Rng, decayCoef, Svf } from './dsp.js';
 
-const CTRL = 16; // control-rate block
+const V_CTRL = 16; // control-rate block
 const lm = (d1, d2, d, l) => (d1 === d ? l : 0) + (d2 === d ? l : 0);
 
 // algorithms: modulator bitmask per op [A,B,C,D] and carrier mask (bit0=A)
@@ -125,7 +125,7 @@ export class Voice {
   // control-rate update
   control(p, b) {
     const sr = this.sr;
-    const dt = CTRL / sr;
+    const dt = V_CTRL / sr;
     // lfo
     const rate = p[b + P.lRate];
     let ph = this.lfoPh + rate * dt;
@@ -184,7 +184,7 @@ export class Voice {
       return;
     }
     if (this.ctr === 0) this.control(p, b);
-    this.ctr = (this.ctr + 1) % CTRL;
+    this.ctr = (this.ctr + 1) % V_CTRL;
 
     // ---- operator envelopes
     const env = this.env;
@@ -350,4 +350,4 @@ export class Voice {
   }
 }
 
-export { NP };
+

@@ -19,7 +19,20 @@ function buildFx() {
     reverb: () => {
       const s = sect('reverb');
       s.append(krow(['m.rPre', 'm.rDecay', 'm.rTone', 'm.rEarly', 'm.rLvl']));
-      return [s, sendsSect('reverb sends', 'sRev')];
+      // convolution: pick a factory impulse response or load your own (pre, decay, early are for algo only)
+      const ir = sect('impulse response');
+      const load = btn('load your own ir', 'sm', irPick);
+      ir.head.append(h('span', 'sp'), load);
+      const note = h('div', 'dim', '');
+      note.style.fontSize = '17px';
+      const drawNote = () => (note.textContent = S.base[NV_ + M.rType] >= 0.5
+        ? 'ir: ' + (Math.round(S.base[NV_ + M.rIr]) === IR_USER ? (irUser ? irUser.name : 'none loaded yet') : IR_NAMES[Math.round(S.base[NV_ + M.rIr])]) + ' · tone and return still apply'
+        : 'type algo: the built-in reverb. turn type to ir to use an impulse response');
+      watch('m.rType', drawNote);
+      watch('m.rIr', drawNote);
+      drawNote();
+      ir.append(krow(['m.rType', 'm.rIr', h('div'), h('div'), h('div')]), note);
+      return [s, ir, sendsSect('reverb sends', 'sRev')];
     },
     bus: () => {
       const d = sect('distortion bus');

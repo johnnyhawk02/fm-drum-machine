@@ -20,6 +20,11 @@ export class Engine {
     for (let v = 0; v < NUM_VOICES; v++) this.voices.push(new Voice(sr, (seed * 7919 + v * 104729) >>> 0));
     this.echo = new Echo(sr);
     this.reverb = new Reverb(sr);
+    // convolution reverb runs outside (a ConvolverNode): the send goes out on irOut, the wet comes back on irIn
+    this.irInL = this.irInR = this.irOutL = this.irOutR = null;
+    this.irTone = 0;
+    this.irLpL = 0;
+    this.irLpR = 0;
     this.sendDist = new Distortion(sr);
     this.mdist = new Distortion(sr);
     this.comp = new Compressor(sr);
@@ -59,6 +64,7 @@ export class Engine {
     dSec *= 1 + m[M.eFine] * 0.01;
     this.echo.set(dSec * sr, m[M.eTone]);
     this.reverb.set(m[M.rPre], m[M.rDecay], m[M.rTone], m[M.rEarly]);
+    this.irTone = 1 - Math.exp((-2 * Math.PI * m[M.rTone]) / sr);
     this.sendDist.set(m[M.sdTone]);
     this.mdist.set(m[M.mdTone]);
     this.comp.set(m[M.cAtk], m[M.cRel]);
@@ -163,14 +169,29 @@ export class Engine {
       this.echo.tick(eL, eR, m[M.eFb], m[M.eWidth], m[M.ePing] >= 0.5);
       const echoL = this.echo.L * m[M.eLvl];
       const echoR = this.echo.R * m[M.eLvl];
-      this.reverb.tick(rL + echoL * 0.2, rR + echoR * 0.2);
+      let revL, revR;
+      if (m[M.rType] >= 0.5) {
+        // impulse response: send out, take the wet back in, tone it with a gentle low-pass
+        const i = off + s;
+        if (this.irOutL) { this.irOutL[i] = rL + echoL * 0.2; this.irOutR[i] = rR + echoR * 0.2; }
+        const wl = this.irInL ? this.irInL[i] : 0;
+        const wr = this.irInR ? this.irInR[i] : 0;
+        this.irLpL += (wl - this.irLpL) * this.irTone;
+        this.irLpR += (wr - this.irLpR) * this.irTone;
+        revL = this.irLpL;
+        revR = this.irLpR;
+      } else {
+        this.reverb.tick(rL + echoL * 0.2, rR + echoR * 0.2);
+        revL = this.reverb.L;
+        revR = this.reverb.R;
+      }
       this.sendDist.tick(dL, dR, 0, m[M.sdDrive], 0.2, 1, 1);
       this.ringPh += m[M.rmHz] / this.sr;
       if (this.ringPh >= 1) this.ringPh -= 1;
       const rm = ring * sinc(this.ringPh) * m[M.rmLvl];
 
-      l += (echoL + this.reverb.L * m[M.rLvl] + this.sendDist.L * m[M.sdLvl] + rm) * gFx;
-      r += (echoR + this.reverb.R * m[M.rLvl] + this.sendDist.R * m[M.sdLvl] + rm) * gFx;
+      l += (echoL + revL * m[M.rLvl] + this.sendDist.L * m[M.sdLvl] + rm) * gFx;
+      r += (echoR + revR * m[M.rLvl] + this.sendDist.R * m[M.sdLvl] + rm) * gFx;
 
       // master: hp, distortion, compressor, volume, safety clip
       if (this.hpOn) {

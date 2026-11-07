@@ -54,8 +54,9 @@ async function startAudio() {
   ctx = new AudioContext({ latencyHint: 'interactive' });
   const url = URL.createObjectURL(new Blob([WORKLET_SRC], { type: 'text/javascript' }));
   await ctx.audioWorklet.addModule(url);
-  node = new AudioWorkletNode(ctx, 'elixir-fm', { numberOfInputs: 0, outputChannelCount: [2] });
-  node.connect(ctx.destination);
+  node = new AudioWorkletNode(ctx, 'elixir-fm', { numberOfInputs: 1, numberOfOutputs: 2, outputChannelCount: [2, 2] });
+  node.connect(ctx.destination, 0);
+  irAttach(ctx, node); // convolution reverb: send out on output 1, wet back into the input
   node.port.onmessage = (ev) => onWorklet(ev.data);
   post({ t: 'all', base: S.base });
   post({ t: 'pat', vel: S.vel, flag: S.flag });
@@ -140,6 +141,7 @@ const NAMES = {
   algo: ALGOS, fType: FILTER_TYPES, nType: NOISE_TYPES, clkType: CLICK_TYPES, lShape: LFO_SHAPES, lDest: LFO_DESTS, lDest2: LFO_DESTS,
   eDiv: ECHO_DIVS.map((d) => d[0]), mdType: DIST_TYPES, swType: GROOVES, rushVoice: SHORT,
   rushEvery: RUSH_EVERY.map((b) => (b ? `${b} bar` : 'off')),
+  rType: ['algo', 'ir'], rIr: IR_NAMES,
 };
 const ONOFF = new Set(['fxA', 'phase', 'fxB', 'fxC', 'fxD', 'lRetrig', 'eSync', 'ePing']);
 function fmt(g, x = getG(g)) {

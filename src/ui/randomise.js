@@ -130,7 +130,8 @@ function rndFx(depth, chance, alter) {
   }
   if (ch('reverb')) {
     if (alter) ['rPre', 'rDecay', 'rTone', 'rEarly'].forEach(nudge);
-    else { mixM('rPre', lin(0, 60), depth); mixM('rDecay', exp(0.6, S.opts.wild ? 12 : 5), depth); mixM('rTone', exp(2000, 12000), depth); mixM('rEarly', lin(0.1, 0.8), depth); }
+    else { mixM('rPre', lin(0, 60), depth); mixM('rDecay', exp(0.6, S.opts.wild ? 12 : 5), depth); mixM('rTone', exp(2000, 12000), depth); mixM('rEarly', lin(0.1, 0.8), depth);
+      if (rr() < depth) { setM('rType', rr() < 0.35 ? 1 : 0); setM('rIr', Math.floor(rr() * IR_USER)); } } // sometimes a factory impulse response
   }
   if (ch('sends')) {
     for (let v = 0; v < 6; v++) for (const [id, pr, mx] of [['sEcho', 0.35, 0.45], ['sRev', 0.5, 0.5], ['sDist', 0.15, 0.6], ['sRing', 0.1, 0.5]]) {

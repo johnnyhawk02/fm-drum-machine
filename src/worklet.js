@@ -105,6 +105,14 @@ class ElixirProcessor extends AudioWorkletProcessor {
     const R = out[1] || out[0];
     const n = L.length;
     const s = this.seq;
+    // convolution reverb: send on output 1, wet return on input 0 (empty when nothing is connected)
+    const e = s.e;
+    const so = outputs[1];
+    e.irOutL = so && so[0] ? so[0] : null;
+    e.irOutR = so && so[1] ? so[1] : e.irOutL;
+    const ri = inputs[0];
+    e.irInL = ri && ri[0] ? ri[0] : null;
+    e.irInR = ri && ri[1] ? ri[1] : e.irInL;
     // a new bar is about to start if the next step is a bar start; apply pending at bar boundaries
     s.process(L, R, n);
     if (s.bars !== this.lastBars) {

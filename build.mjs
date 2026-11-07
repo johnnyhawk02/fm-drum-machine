@@ -15,7 +15,7 @@ const ENGINE = ['engine/dsp', 'engine/params', 'engine/voice', 'engine/kits', 'e
 const engine = ENGINE.map((f) => `// ---- ${f}.js\n` + strip(read(`src/${f}.js`))).join('\n');
 const worklet = engine + '\n' + read('src/worklet.js');
 
-const UI = ['core', 'widgets', 'perf', 'mutes', 'pages/beat', 'pages/voice', 'pages/fx', 'pages/mix', 'pages/mstr', 'pages/prst',
+const UI = ['ir', 'core', 'widgets', 'perf', 'mutes', 'pages/beat', 'pages/voice', 'pages/fx', 'pages/mix', 'pages/mstr', 'pages/prst',
   'names', 'randomise', 'autolevel', 'colourpicker', 'quick', 'recorder', 'midi', 'keys', 'main'];
 const ui = UI.filter((f) => existsSync(new URL(`src/ui/${f}.js`, import.meta.url))).map((f) => `// ---- ui/${f}.js\n` + read(`src/ui/${f}.js`)).join('\n');
 

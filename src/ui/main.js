@@ -137,6 +137,7 @@ function frame() {
   requestAnimationFrame(frame);
   const st = S.status;
   drawMeters();
+  irSync();
   if (typeof drawMasterMeters === 'function') drawMasterMeters();
   if (!st) return;
   if (st.step !== lastStep) {
@@ -180,6 +181,6 @@ function boot() {
     });
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((r) => r.update()).catch(() => {});
   }
-  window.__fmdm = { S, presetName, presetNameRaw, isRude, NAME_WORDS, applyPreset, BUILTIN_PRESETS, togglePlay, showPage, runRandom, measureHit, NP, P };
+  window.__fmdm = { M, NV_, get ctx() { return ctx; }, get irConv() { return irConv; }, get node() { return node; }, setG, S, presetName, presetNameRaw, isRude, NAME_WORDS, applyPreset, BUILTIN_PRESETS, togglePlay, showPage, runRandom, measureHit, NP, P };
 }
 boot();

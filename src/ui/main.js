@@ -80,13 +80,47 @@ function buildHeader() {
   rec.id = 'rec';
   hd.append(play, rec);
 }
+// ---- screen colour (saved in this browser). Light colours only, so the dark ink stays readable.
+const LCD_COLOURS = [
+  ['green', '#a7b58c'], ['grey', '#b4b8ad'], ['amber', '#d4b26a'],
+  ['blue', '#9fb6c4'], ['paper', '#d8dccf'], ['rose', '#d4a9a9'],
+];
+function lcdColour() {
+  try { return localStorage.getItem('fmdm.lcd') || LCD_COLOURS[0][1]; } catch { return LCD_COLOURS[0][1]; }
+}
+function setLcdColour(c, save = true) {
+  document.documentElement.style.setProperty('--lcd', c);
+  if (save) try { localStorage.setItem('fmdm.lcd', c); } catch {}
+}
 function openOptions() {
   const body = h('div');
   body.style.display = 'grid';
   body.style.gap = '10px';
+  const sw = h('div', 'swatches');
+  const pick = document.createElement('input');
+  pick.type = 'color';
+  pick.title = 'any colour';
+  const mark = () => {
+    const c = lcdColour().toLowerCase();
+    sw.querySelectorAll('.swatch').forEach((b) => b.classList.toggle('on', b.dataset.c === c));
+    pick.value = c;
+  };
+  for (const [name, c] of LCD_COLOURS) {
+    const b = h('button', 'swatch');
+    b.title = name;
+    b.dataset.c = c;
+    b.style.background = c;
+    b.onclick = () => { setLcdColour(c); mark(); };
+    sw.append(b);
+  }
+  pick.oninput = () => { setLcdColour(pick.value); mark(); };
+  sw.append(pick);
+  mark();
   body.append(
     chk('randomise on next bar', () => S.opts.nextBar, (v) => (S.opts.nextBar = v)),
     chk('wild ranges (not drum-safe)', () => S.opts.wild, (v) => (S.opts.wild = v)),
+    h('div', '', 'screen colour'),
+    sw,
   );
   dialog('options', body);
 }
@@ -111,6 +145,7 @@ function frame() {
 }
 
 function boot() {
+  setLcdColour(lcdColour(), false);
   fitStage();
   addEventListener('resize', fitStage);
   addEventListener('orientationchange', () => setTimeout(fitStage, 250));

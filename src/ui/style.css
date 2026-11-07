@@ -9,7 +9,11 @@
   --font: 'VT323', ui-monospace, Menlo, Consolas, monospace;
 }
 * { box-sizing: border-box; }
-html, body { margin: 0; height: 100%; background: var(--bezel); overflow: hidden; }
+html, body { margin: 0; height: 100%; background: var(--bezel); overflow: hidden; overscroll-behavior: none; touch-action: none; }
+/* the fixed view clips the unscaled stage, so it never widens the page on phones */
+#view { position: fixed; inset: 0; overflow: hidden; }
+#turn { display: none; position: absolute; inset: 0; z-index: 100; place-items: center; background: var(--bezel); color: var(--lcd); font-size: 30px; text-align: center; padding: 20px; }
+@media (orientation: portrait) and (pointer: coarse) { #turn { display: grid; } }
 body { font-family: var(--font); color: var(--ink); -webkit-user-select: none; user-select: none; }
 button, input, select { font: inherit; color: inherit; }
 [hidden] { display: none !important; }

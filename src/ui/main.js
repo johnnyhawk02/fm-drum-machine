@@ -8,9 +8,11 @@ let stageH = 900;
 // sequencer strip grow taller) instead of black bars, up to 2200x1300 design pixels.
 function fitStage() {
   const st = $('stage');
-  stageScale = Math.min(innerWidth / 1440, innerHeight / 900);
-  stageW = Math.min(2200, innerWidth / stageScale);
-  stageH = Math.min(1300, innerHeight / stageScale);
+  const vw = $('view').clientWidth || innerWidth;
+  const vh = $('view').clientHeight || innerHeight;
+  stageScale = Math.min(vw / 1440, vh / 900);
+  stageW = Math.min(2200, vw / stageScale);
+  stageH = Math.min(1300, vh / stageScale);
   st.style.width = stageW + 'px';
   st.style.height = stageH + 'px';
   st.style.transform = `translate(-50%, -50%) scale(${stageScale})`;
@@ -111,6 +113,8 @@ function frame() {
 function boot() {
   fitStage();
   addEventListener('resize', fitStage);
+  addEventListener('orientationchange', () => setTimeout(fitStage, 250));
+  if (window.visualViewport) visualViewport.addEventListener('resize', fitStage);
   buildHeader();
   buildPerf();
   buildSeq();

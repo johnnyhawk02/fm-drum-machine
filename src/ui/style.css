@@ -166,6 +166,7 @@ h3 { margin: 0; font-weight: normal; font-size: 22px; letter-spacing: .14em; tex
 .xf .cell span { position: absolute; left: 0; right: 0; top: 2px; text-align: center; font-size: 17px; }
 .xf .cell span:not(:empty) { background: var(--lcd); margin: 0 6px; }
 .xf .cell.self { opacity: .2; pointer-events: none; }
+.xf .cell.sel { outline: 2px solid var(--spot); outline-offset: 1px; }
 
 /* menus and dialogs */
 .menu { position: absolute; z-index: 50; background: var(--lcd); border: 2px solid var(--ink); min-width: 170px; padding: 4px 0; }

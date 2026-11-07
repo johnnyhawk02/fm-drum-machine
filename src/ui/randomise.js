@@ -39,9 +39,17 @@ function rndMotion(depth) {
   for (let k = 0; k < count; k++) {
     let g = -1;
     for (let tries = 0; tries < 50; tries++) {
-      const v = Math.floor(rr() * 6);
-      const id = MOTION_POOL[Math.floor(rr() * MOTION_POOL.length)];
-      g = v * NP + P[id];
+      if (rr() < 0.2) {
+        // sometimes an xmod cell, so drums modulate each other in and out
+        const s = Math.floor(rr() * 6);
+        let d = Math.floor(rr() * 5);
+        if (d >= s) d++;
+        g = NV_ + M[`xa${s}${d}`];
+      } else {
+        const v = Math.floor(rr() * 6);
+        const id = MOTION_POOL[Math.floor(rr() * MOTION_POOL.length)];
+        g = v * NP + P[id];
+      }
       if (!used.has(g) && laneOf(g) < 0) break;
       g = -1;
     }
@@ -56,7 +64,7 @@ function rndMotion(depth) {
     laneRandom(LANE_RANDOMS[Math.floor(rr() * LANE_RANDOMS.length)], ln.len, ln.steps, (rr() * 1e9) | 0);
     ln.speed = speeds[k];
     ln.slew = 0.1 + rr() * 0.45;
-    ln.depth = (rr() < 0.5 ? -1 : 1) * (0.2 + rr() * 0.4) * depth / 0.6;
+    ln.depth = (g >= NV_ ? 1 : rr() < 0.5 ? -1 : 1) * (0.2 + rr() * 0.4) * depth / 0.6;
     ln.groove = true;
   }
 }
@@ -145,13 +153,35 @@ function rndMix(depth) {
 }
 function rndXfeed(depth) {
   for (let s = 0; s < 6; s++) for (let d = 0; d < 6; d++) S.base[NV_ + M[`xa${s}${d}`]] = 0;
+  // drop sequences the last xmod randomise made
+  S.lanes = S.lanes.map((ln) => (ln && ln.xmod ? null : ln));
   const n = 1 + Math.floor(rr() * (2 + depth * 4));
+  const set = [];
   for (let i = 0; i < n; i++) {
     const s = Math.floor(rr() * 6);
     let d = Math.floor(rr() * 5);
     if (d >= s) d++;
     setM(`xa${s}${d}`, (0.05 + rr() * 0.45) * depth);
     setM(`xt${s}${d}`, Math.floor(rr() * 3));
+    if (!set.includes(`xa${s}${d}`)) set.push(`xa${s}${d}`);
+  }
+  // at least half of the routings get a step sequence on their depth
+  set.sort(() => rr() - 0.5);
+  const nSeq = Math.ceil(set.length / 2) + (rr() < 0.5 ? Math.floor(rr() * (set.length / 2)) : 0);
+  for (let i = 0; i < nSeq && i < set.length; i++) {
+    const g = NV_ + M[set[i]];
+    if (laneOf(g) >= 0) continue;
+    const l = newLane(g);
+    if (l < 0) break;
+    const ln = S.lanes[l];
+    ln.xmod = true;
+    ln.len = rr() < 0.5 ? 16 : 8;
+    ln.steps.fill(0);
+    laneRandom(LANE_RANDOMS[Math.floor(rr() * LANE_RANDOMS.length)], ln.len, ln.steps, (rr() * 1e9) | 0);
+    ln.speed = [0, 1, 2, 4, 5, 6][Math.floor(rr() * 6)];
+    ln.slew = 0.1 + rr() * 0.45;
+    ln.depth = 0.2 + rr() * 0.4;
+    ln.groove = true;
   }
 }
 function rndPattern(depth, chance) {

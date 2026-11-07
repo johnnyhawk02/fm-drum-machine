@@ -77,10 +77,15 @@ function buildXfeed() {
       const kt = `m.xt${src}${d}`;
       const ga = keyG(ka);
       const gt = keyG(kt);
+      const ma = model(ka);
       const draw = () => {
         const a = getG(ga);
-        c.firstChild.style.height = a * 100 + '%';
-        c.lastChild.textContent = a > 0 ? XF_TARGETS[Math.round(getG(gt))] : '';
+        const mod = ma.mod() || 0; // live step-sequencer movement while playing
+        const seq = laneOf(ga) >= 0;
+        const shown = clamp(a + mod, 0, 1);
+        c.firstChild.style.height = shown * 100 + '%';
+        c.lastChild.textContent = a > 0 || seq ? XF_TARGETS[Math.round(getG(gt))] + (seq ? ' ~' : '') : '';
+        c.classList.toggle('sel', S.sel === ka);
       };
       watch(ka, draw);
       watch(kt, draw);
@@ -88,6 +93,7 @@ function buildXfeed() {
       let moved = false;
       c.addEventListener('pointerdown', (e) => {
         if (e.button !== 0) return;
+        select(ka); // so the step sequencer under perf works on this cell
         c.setPointerCapture(e.pointerId);
         let y0 = e.clientY;
         moved = false;
@@ -109,9 +115,10 @@ function buildXfeed() {
         }, { once: true });
       });
       c.addEventListener('dblclick', () => setG(ga, 0));
+      c.addEventListener('contextmenu', (e) => { e.preventDefault(); controlMenu(ma, e); });
       g.append(c);
     }
   }
-  s.append(g, h('div', 'dim', '<span style="font-size:17px">rows (op A of that drum, always running) feed columns · drag: depth · click: fm / filter / ring · double-click: off. you hear it while the drum in the column sounds.</span>'));
+  s.append(g, h('div', 'dim', '<span style="font-size:17px">rows (op A of that drum, always running) feed columns · drag: depth · click: fm / filter / ring · double-click: off · right-click: step sequencer (or select a cell and paint the strip under perf). you hear it while the drum in the column sounds.</span>'));
   return s;
 }

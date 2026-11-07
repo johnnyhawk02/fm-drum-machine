@@ -4,7 +4,7 @@
 import { NUM_VOICES, NP, PARAMS, MPARAMS, MP, M, RUSH_EVERY, SPEEDS } from '../engine/params.js';
 import { Rng } from '../engine/dsp.js';
 
-export const MAX_STEPS = 64;
+export const MAX_STEPS = 128; // 8 bars of 16ths
 export const NUM_LANES = 32;
 export const F_OPEN = 1; // hat step plays open
 export const F_ACCENT = 2;

@@ -33,6 +33,7 @@ for (const [w, hgt] of [[1440, 900], [1280, 800]]) {
   if (!fits) fail++;
   if (w === 1440) {
     await p.click('#play');
+    await p.waitForFunction(() => window.__fmdm.S.status && window.__fmdm.S.status.playing, null, { timeout: 10000 });
     const n = await p.evaluate(() => window.__fmdm.BUILTIN_PRESETS.length);
     for (let i = 0; i < n; i++) {
       await p.evaluate((i) => { const f = window.__fmdm; f.S.playing = false; f.applyPreset(f.BUILTIN_PRESETS[i]); f.S.playing = true; }, i);

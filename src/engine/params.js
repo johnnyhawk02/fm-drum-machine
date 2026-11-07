@@ -168,7 +168,7 @@ const MSPEC = [
     [`rMute${v}`, 0, 1, 0, 'int', `verb mute ${v + 1}`],
   ]),
   // sequencer / groove / rush
-  ['patLen', 1, 64, 16, 'int', 'length'],
+  ['patLen', 1, 128, 16, 'int', 'length'],
   ['swType', 0, 3, 0, 'int', 'groove'],
   ['swDepth', 0, 1, 0, 'lin', 'swing'],
   ['accent', 0, 1, 0.5, 'lin', 'accent'],

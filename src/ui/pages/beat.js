@@ -65,7 +65,7 @@ function buildBeat() {
 let gridPage = 0;
 function buildGrid() {
   const s = sect('steps');
-  const pages = [0, 1, 2, 3].map((p) => btn(String(p + 1), 'xs', () => { gridPage = p; draw(); }));
+  const pages = [0, 1, 2, 3, 4, 5, 6, 7].map((p) => btn(String(p + 1), 'xs', () => { gridPage = p; draw(); }));
   s.head.append(h('span', 'sp'), ...pages, btn('clear', 'xs', () => { pushUndo(); S.vel.fill(0); S.flag.fill(0); sendPattern(); }));
   const g = h('div', 'grid');
   const cells = [];

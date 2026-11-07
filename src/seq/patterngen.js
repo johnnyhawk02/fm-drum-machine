@@ -62,46 +62,79 @@ export function generate(opts, out) {
   const alt = variants[(o.beat + 1) % variants.length];
   const len = Math.max(1, Math.min(MAX_STEPS, o.len | 0));
   const e = o.energy;
+  // one bar is generated, then every later bar is a copy of it with a few small changes that build
+  // up over the phrase (so it evolves rather than changing all at once). The last bar ends in a fill.
+  const bar = Math.min(16, len);
+  const hit = (t, k, s, ch, p) => {
+    const onBeat = (s & 3) === 0;
+    let v = (onBeat ? 112 : 92) + Math.round(rng.bi() * 14) - (p < 0.3 ? 25 : 0);
+    v = Math.max(20, Math.min(127, v));
+    const i = t * MAX_STEPS + k;
+    vel[i] = v;
+    flag[i] = 0;
+    if (ch === 'o' && t === 5) flag[i] |= F_OPEN;
+    if ((onBeat && rng.uni() < o.accent) || rng.uni() < o.accent * 0.15) flag[i] |= F_ACCENT;
+  };
+  const prob = (t, s, src) => {
+    const ch = src[t][s];
+    let p = chance(ch);
+    if (p < 0.99) p *= 0.5 + e; // energy: busier and more ghost notes; strong hits stay
+    if (p === 0 && (t === 1 || t === 2 || t === 5)) p = e * e * 0.18;
+    return [p * dens[t], ch, chance(ch) >= 0.99];
+  };
+  // bar 1
   for (let t = 0; t < 6; t++) {
-    for (let k = 0; k < len; k++) {
-      const s = k & 15;
-      // mostly the main template, sometimes borrow from the other variant
-      const src = rng.uni() < 0.15 + 0.15 * e ? alt : tpl;
-      const ch = src[t][s];
-      let p = chance(ch);
-      const strong = p >= 0.99;
-      // energy: busier and more ghost notes; strong hits stay
-      if (!strong) p *= 0.5 + e;
-      if (p === 0 && (t === 1 || t === 2 || t === 5)) p = e * e * 0.18;
-      p *= dens[t];
-      // cymbal only on the first bar of a phrase unless dense
-      if (t === 4 && k >= 16 && dens[t] <= 1) p *= 0.3;
-      if (rng.uni() < p) {
-        const onBeat = (s & 3) === 0;
-        let v = (onBeat ? 112 : 92) + Math.round(rng.bi() * 14) - (p < 0.3 ? 25 : 0);
-        v = Math.max(20, Math.min(127, v));
-        const i = t * MAX_STEPS + k;
-        vel[i] = v;
-        if (ch === 'o' && t === 5) flag[i] |= F_OPEN;
-        if ((onBeat && rng.uni() < o.accent) || rng.uni() < o.accent * 0.15) flag[i] |= F_ACCENT;
-      }
+    for (let k = 0; k < bar; k++) {
+      const src = rng.uni() < 0.1 + 0.1 * e ? alt : tpl;
+      const [p, ch] = prob(t, k, src);
+      if (rng.uni() < p) hit(t, k, k, ch, p);
     }
   }
-  // fills: last 4 steps of the pattern (or of the last bar for long patterns)
-  if (o.fills > 0) {
-    const fl = len >= 16 ? 4 + Math.round(o.fills * 4) : 2;
-    for (let k = Math.max(0, len - fl); k < len; k++) {
-      const frac = (k - (len - fl)) / fl;
+  // later bars: copy the previous bar, then nudge a few steps (more as the phrase goes on)
+  const bars = Math.ceil(len / 16);
+  for (let br = 1; br < bars; br++) {
+    for (let t = 0; t < 6; t++) {
+      for (let s = 0; s < 16; s++) {
+        const from = t * MAX_STEPS + (br - 1) * 16 + s;
+        const to = t * MAX_STEPS + br * 16 + s;
+        vel[to] = vel[from];
+        flag[to] = flag[from];
+      }
+      // cymbal mostly marks the start of the phrase
+      if (t === 4 && dens[t] <= 1) for (let s = 0; s < 16; s++) if (rng.uni() < 0.7) vel[t * MAX_STEPS + br * 16 + s] = 0;
+    }
+    const changes = 1 + Math.round(rng.uni() * (1 + 2 * e) + br * 0.4);
+    for (let c = 0; c < changes; c++) {
+      const t = [1, 2, 3, 5, 5, 0][Math.floor(rng.uni() * 6)];
+      const s = Math.floor(rng.uni() * 16);
+      const k = br * 16 + s;
+      if (k >= len) continue;
+      const [p, ch, strong] = prob(t, s, rng.uni() < 0.5 ? alt : tpl);
+      const i = t * MAX_STEPS + k;
+      if (strong || chance(tpl[t][s]) >= 0.99 || (t === 3 && (s === 4 || s === 12) && vel[i])) continue; // the backbone never moves
+      if (vel[i]) vel[i] = 0;
+      else if (p > 0 || t === 5 || t === 1) hit(t, k, s, ch, Math.max(p, 0.2));
+    }
+  }
+  // clear anything past the end
+  for (let t = 0; t < 6; t++) for (let k = len; k < MAX_STEPS; k++) vel[t * MAX_STEPS + k] = 0;
+  // a small pickup halfway through a long phrase, the full fill at the end
+  const fill = (end, amt, n) => {
+    for (let k = Math.max(0, end - n); k < end; k++) {
+      const frac = (k - (end - n)) / n;
       for (const t of [3, 1, 2]) {
-        if (rng.uni() < o.fills * (0.35 + 0.5 * frac) * (t === 3 ? 1 : 0.6)) {
+        if (rng.uni() < amt * (0.35 + 0.5 * frac) * (t === 3 ? 1 : 0.6)) {
           const i = t * MAX_STEPS + k;
           vel[i] = Math.min(127, 70 + Math.round(frac * 50 + rng.bi() * 10));
           if (frac > 0.6) flag[i] |= F_ACCENT;
         }
       }
-      // thin the hats under the fill
-      if (rng.uni() < o.fills * 0.5) vel[5 * MAX_STEPS + k] = 0;
+      if (rng.uni() < amt * 0.5) vel[5 * MAX_STEPS + k] = 0; // thin the hats under the fill
     }
+  };
+  if (o.fills > 0) {
+    if (bars >= 8) fill(len / 2, o.fills * 0.5, 2 + Math.round(o.fills * 2));
+    fill(len, o.fills, len >= 16 ? 4 + Math.round(o.fills * 4) : 2);
   }
   return { vel, flag, len };
 }

@@ -1,0 +1,10 @@
+fm/dm impulse responses
+
+Recorded spaces (*.flac in this folder) are from Voxengo's free reverb impulse responses,
+https://www.voxengo.com/impulses/ (via https://github.com/oramics/sampled/tree/master/IR/Voxengo),
+converted to FLAC, the longest trimmed to 6 seconds. Their licence:
+"Permission is granted to anyone to use these impulse files royalty-free for any purpose,
+including commercial usage."
+
+The other factory impulse responses (room, studio, chamber, plate, hall, cathedral, spring,
+gated, reverse, tin can) are synthesised by fm/dm itself (src/ui/ir.js).

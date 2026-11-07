@@ -39,6 +39,9 @@ const page = read('src/index.src.html')
 
 mkdirSync(new URL('dist/', import.meta.url), { recursive: true });
 writeFileSync(new URL('dist/index.html', import.meta.url), page);
+// impulse responses (fetched when picked) and their credits
+mkdirSync(new URL('dist/ir/', import.meta.url), { recursive: true });
+for (const f of readdirSync(new URL('src/static/ir/', import.meta.url))) copyFileSync(new URL(`src/static/ir/${f}`, import.meta.url), new URL(`dist/ir/${f}`, import.meta.url));
 for (const f of ['manifest.webmanifest', 'icon.svg', 'icon-512.png']) copyFileSync(new URL(`src/static/${f}`, import.meta.url), new URL(`dist/${f}`, import.meta.url));
 writeFileSync(new URL('dist/sw.js', import.meta.url), read('src/static/sw.js').replace('@VER@', ver));
 // Cloudflare Pages: always revalidate the page and the service worker, so updates show at startup

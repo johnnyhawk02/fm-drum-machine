@@ -14,3 +14,10 @@ MIT licence.
     npm test            # Node render + sequencer tests
 
 The VT323 font (SIL Open Font License) is embedded in the page.
+
+## Impulse responses
+
+The convolution reverb's recorded spaces are Voxengo's free reverb impulse responses
+(https://www.voxengo.com/impulses/), used under their licence: "Permission is granted to anyone to use
+these impulse files royalty-free for any purpose, including commercial usage." See `src/static/ir/CREDITS.txt`.
+The other factory IRs are synthesised by the app.

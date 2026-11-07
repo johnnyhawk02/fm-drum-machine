@@ -133,7 +133,7 @@ const MSPEC = [
   ['rEarly', 0, 1, 0.4, 'lin', 'early'],
   ['rLvl', 0, 1, 0.6, 'lin', 'return'],
   ['rType', 0, 1, 0, 'int', 'type'], // 0 the built-in algorithmic reverb, 1 convolution with an impulse response
-  ['rIr', 0, 10, 3, 'int', 'ir'], // which impulse response (factory ones, then your own)
+  ['rIr', 0, 30, 3, 'int', 'ir'], // 0-9 synthesised, 10-29 recorded spaces, 30 your own // which impulse response (factory ones, then your own)
   // distortion send bus
   ['sdDrive', 0, 1, 0.5, 'lin', 'drive'],
   ['sdTone', 200, 16000, 6000, 'exp', 'tone'],

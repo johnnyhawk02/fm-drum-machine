@@ -2,7 +2,18 @@
 // (decaying noise shaped per space, with early reflections and damping that darkens the tail);
 // your own IR file (wav, aiff, mp3...) can be loaded and is kept in the browser.
 
-const IR_NAMES = ['room', 'studio', 'chamber', 'plate', 'hall', 'cathedral', 'spring', 'gated', 'reverse', 'tin can', 'your ir'];
+// recorded spaces from Voxengo's free impulse responses ("Permission is granted to anyone to use these
+// impulse files royalty-free for any purpose, including commercial usage", voxengo.com/impulses),
+// served as FLAC from ir/ and fetched the first time they're picked
+const IR_FILES = [
+  ['drum room', 'nice_drum_room'], ['small drums', 'small_drum_room'], ['bottle hall', 'bottle_hall'], ['garage', 'parking_garage'],
+  ['silo', 'in_the_silo_revised'], ['church', 'st_nicolaes_church'], ['deep space', 'deep_space'], ['on a star', 'on_a_star'],
+  ['rays', 'rays'], ['five columns', 'five_columns'], ['echo hall', 'large_wide_echo_hall'], ['cement', 'cement_blocks_1'],
+  ['block', 'block_inside'], ['cave', 'small_prehistoric_cave'], ['bumpy', 'narrow_bumpy_space'], ['la scala', 'scala_milan_opera_hall'],
+  ['musikverein', 'musikvereinsaal'], ['lodge', 'masonic_lodge'], ['trig room', 'trig_room'], ['going home', 'going_home'],
+];
+const IR_SYNTH = 10; // the first ten are synthesised here
+const IR_NAMES = ['room', 'studio', 'chamber', 'plate', 'hall', 'cathedral', 'spring', 'gated', 'reverse', 'tin can', ...IR_FILES.map((f) => f[0]), 'your ir'];
 const IR_USER = IR_NAMES.length - 1;
 // [seconds, brightness at start (Hz), brightness at end (Hz), early reflections, width]
 const IR_SHAPE = [
@@ -92,8 +103,27 @@ function irAttach(c, nd) {
   irShown = -1;
   irLoadStored();
 }
+function irNorm(buf) {
+  let e = 0;
+  for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) e += d[i] * d[i]; }
+  const g = (1 / Math.sqrt(e / buf.numberOfChannels + 1e-9)) * 0.35;
+  for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] *= g; }
+  return buf;
+}
+const irLoading = new Set();
 function irBuffer(k) {
   if (k === IR_USER) return irUser ? irUser.buf : null;
+  if (k >= IR_SYNTH) {
+    // a recorded one: fetch and decode once, then the next sync picks it up
+    if (!irCache.has(k) && !irLoading.has(k)) {
+      irLoading.add(k);
+      fetch(`ir/${IR_FILES[k - IR_SYNTH][1]}.flac`).then((r) => r.arrayBuffer()).then((d) => ctx.decodeAudioData(d))
+        .then((b) => { irCache.set(k, irNorm(b)); irShown = -1; })
+        .catch(() => toast('could not load that ir'))
+        .finally(() => irLoading.delete(k));
+    }
+    return irCache.get(k) || null;
+  }
   if (!irCache.has(k)) {
     const [L, R] = makeIR(ctx.sampleRate, k);
     const b = ctx.createBuffer(2, L.length, ctx.sampleRate);
@@ -107,7 +137,7 @@ function irBuffer(k) {
 function irSync() {
   if (!irConv) return;
   const k = Math.round(S.base[NV_ + M.rIr]);
-  const want = k === IR_USER && !irUser ? -2 : k;
+  const want = (k === IR_USER && !irUser) || (k >= IR_SYNTH && k < IR_USER && !irCache.has(k)) ? -2 - k : k;
   if (want === irShown) return;
   irShown = want;
   irConv.buffer = irBuffer(k);
@@ -117,7 +147,7 @@ async function irLoadFile(file) {
     const data = await file.arrayBuffer();
     await irUse(file.name, data.slice(0));
     irStore(file.name, data);
-    setG(NV_ + M.rIr, 1);
+    setG(NV_ + M.rIr, IR_USER);
     setG(NV_ + M.rType, 1);
     redraw('m.rIr');
     redraw('m.rType');
@@ -128,12 +158,7 @@ async function irLoadFile(file) {
 }
 async function irUse(name, data) {
   if (!ctx) await startAudio();
-  const buf = await ctx.decodeAudioData(data);
-  // match the factory level: same energy target
-  let e = 0;
-  for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) e += d[i] * d[i]; }
-  const g = (1 / Math.sqrt(e / buf.numberOfChannels + 1e-9)) * 0.35;
-  for (let c = 0; c < buf.numberOfChannels; c++) { const d = buf.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] *= g; }
+  const buf = irNorm(await ctx.decodeAudioData(data)); // match the factory level
   irUser = { name, buf };
   irShown = -1;
   IR_NAMES[IR_USER] = 'your ir';

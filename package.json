@@ -5,7 +5,7 @@
   "type": "module",
   "license": "MIT",
   "scripts": {
-    "test": "node test/render.test.mjs",
+    "test": "node test/render.test.mjs && node test/seq.test.mjs",
     "render": "node test/render.test.mjs renders"
   }
 }

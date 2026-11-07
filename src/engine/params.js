@@ -161,6 +161,17 @@ const MSPEC = [
     [`eMute${v}`, 0, 1, 0, 'int', `echo mute ${v + 1}`],
     [`rMute${v}`, 0, 1, 0, 'int', `verb mute ${v + 1}`],
   ]),
+  // sequencer / groove / rush
+  ['patLen', 1, 64, 16, 'int', 'length'],
+  ['swType', 0, 3, 0, 'int', 'groove'],
+  ['swDepth', 0, 1, 0, 'lin', 'swing'],
+  ['accent', 0, 1, 0.5, 'lin', 'accent'],
+  ['rushEvery', 0, 4, 0, 'int', 'rush'],
+  ['rushLen', 1, 16, 4, 'int', 'rush len'],
+  ['rushVoice', 0, 5, 3, 'int', 'rush drum'],
+  ['rushRate', 2, 8, 4, 'int', 'rush rate'],
+  ['rushHp', 20, 2000, 600, 'exp', 'rush hp'],
+  ...Array.from({ length: 16 }, (_, i) => [`rc${i}`, 0, 1, i / 15, 'lin', `curve ${i + 1}`]),
   // crossfeed 6x6: amount and target (0 fm, 1 filter, 2 ring) per src>dst
   ...[0, 1, 2, 3, 4, 5].flatMap((s) =>
     [0, 1, 2, 3, 4, 5].flatMap((d) => [
@@ -169,6 +180,9 @@ const MSPEC = [
     ])
   ),
 ];
+export const GROOVES = ['swing 16', 'swing 8', 'shuffle', 'drunk'];
+export const RUSH_EVERY = [0, 1, 2, 4, 8]; // bars
+export const SPEEDS = [['1/16', 1], ['1/8', 2], ['1/4', 4], ['1/2', 8], ['1 bar', 16], ['2 bars', 32], ['4 bars', 64], ['8 bars', 128]];
 export const XF_TARGETS = ['fm', 'filter', 'ring'];
 export const MPARAMS = MSPEC.map(([id, min, max, def, curve, label], i) => ({ id, i, min, max, def, curve, label }));
 export const MP = MPARAMS.length;

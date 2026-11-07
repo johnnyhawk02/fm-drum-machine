@@ -13,7 +13,9 @@ const SPEC = [
   ['algo', 0, 7, 0, 'int', 'algo'],
   ['tune', 20, 8000, 55, 'exp', 'tune'],
   ['fmLvl', 0, 1, 0.8, 'lin', 'fm lvl'],
-  ['fb', 0, 1, 0, 'lin', 'fdbk'],
+  ['fb', -1, 1, 0, 'bip', 'fdbk'], // below 0 the feedback is squared: a rougher, asymmetric colour
+  ['fmEnd', 0, 1, 0, 'lin', 'fm end'], // modulator envelopes settle at this level instead of 0
+  ['phase', 0, 1, 0, 'int', '90° start'], // carriers start at 90°, modulators at 180°: a harder first transient
   // operator A..D: ratio, level, attack, decay, curve, fixed
   ...['A', 'B', 'C', 'D'].flatMap((o) => [
     [`r${o}`, 0.125, 16, 1, 'exp', `ratio ${o}`],
@@ -153,7 +155,7 @@ const MSPEC = [
   ['cRel', 10, 1000, 120, 'exp', 'release'],
   ['cMake', 0, 24, 2, 'lin', 'makeup'],
   ['cMix', 0, 1, 1, 'lin', 'mix'],
-  ['mVol', 0, 1.5, 0.55, 'lin', 'master'],
+  ['mVol', 0, 1.5, 0.5, 'lin', 'master'],
   // mixer: per voice mute/solo and send mutes
   ...[0, 1, 2, 3, 4, 5].flatMap((v) => [
     [`mute${v}`, 0, 1, 0, 'int', `mute ${v + 1}`],

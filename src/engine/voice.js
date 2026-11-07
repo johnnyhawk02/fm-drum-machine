@@ -46,6 +46,7 @@ export class Voice {
     this.pendVel = 1;
     this.pendAlt = 0;
     this.incBase = new Float64Array(4);
+    this.aa = new Float32Array(4).fill(1);
     this.fixedMask = 0;
     this.pSemis = 0;
     this.burstGap = 0;
@@ -100,9 +101,11 @@ export class Voice {
     this.active = true;
     this.vel = vel;
     this.t = 0;
+    const car0 = ALG_CAR[p[b + P.algo] | 0];
+    const ninety = p[b + P.phase] >= 0.5;
     for (let o = 0; o < 4; o++) {
       const base = P.rA + o * 5;
-      this.ph[o] = 0;
+      this.ph[o] = ninety ? ((car0 >> o) & 1 ? 0.25 : 0.5) : 0;
       this.env[o] = 0;
       const atk = p[b + base + 2];
       this.atkInc[o] = atk <= 0.05 ? 2 : 1000 / (atk * sr);
@@ -192,6 +195,14 @@ export class Voice {
       this.incBase[o] = f / sr;
     }
     this.fixedMask = fixed;
+    // FM index into each operator shrinks as that operator's pitch rises, so sidebands stay below
+    // Nyquist (cheap anti-aliasing): 20 * (0.5 - f/sr)^4, capped at 1
+    for (let o = 0; o < 4; o++) {
+      const fr = this.incBase[o] * (this.fixedMask >> o & 1 ? 1 : Math.pow(2, (this.pEnv * this.pSemis) / 12));
+      const q = 0.5 - (fr > 0.5 ? 0.5 : fr);
+      const a = 20 * q * q * q * q;
+      this.aa[o] = a > 1 ? 1 : a;
+    }
     // filter
     const ft = p[b + P.fType] | 0;
     if (ft) {
@@ -233,6 +244,7 @@ export class Voice {
     const algo = p[b + P.algo] | 0;
     const mods = ALG_MOD[algo];
     const car = ALG_CAR[algo];
+    const fmEnd = p[b + P.fmEnd];
     const out = this.out;
     const idx = this.fmIdx + this.xFm;
     let body = 0;
@@ -242,14 +254,23 @@ export class Voice {
       const mask = mods[o];
       if (mask) {
         for (let j = o + 1; j < 4; j++) if ((mask >> j) & 1) m += out[j];
-        m *= idx;
+        m *= idx * this.aa[o];
       }
-      if (o === 3) m += (this.fbz + this.fbz2) * 0.5 * p[b + P.fb] * 1.2;
+      if (o === 3) {
+        // feedback follows D's own envelope, so the grit fades with the attack;
+        // negative feedback uses the squared signal (asymmetric, rougher)
+        const fb = p[b + P.fb];
+        if (fb !== 0) {
+          const z = (this.fbz + this.fbz2) * 0.5;
+          m += (fb > 0 ? z : z * z * 2 - 0.5) * fb * 1.2 * env[3] * this.aa[3];
+        }
+      }
       let ph = this.ph[o] + this.inc[o];
       if (ph >= 1) ph -= 1;
       this.ph[o] = ph;
       const lvl = p[b + P.lA + o * 5];
-      const y = sinc(ph + m) * env[o] * lvl;
+      const e = (car >> o) & 1 ? env[o] : fmEnd + (1 - fmEnd) * env[o];
+      const y = sinc(ph + m) * e * lvl;
       out[o] = y;
       if ((car >> o) & 1) {
         body += y;

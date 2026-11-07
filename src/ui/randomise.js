@@ -160,6 +160,8 @@ function rndPattern(depth, chance) {
   if (rr() < (chance.energy ?? 1)) S.gen.energy = clamp(S.gen.energy + (0.25 + rr() * 0.6 - S.gen.energy) * depth, 0, 1);
   if (rr() < (chance.fills ?? 1)) S.gen.fills = clamp(S.gen.fills + (rr() * 0.7 - S.gen.fills) * depth, 0, 1);
   S.gen.seed = Math.floor(rr() * 1e6);
+  setM('bpm', 90 + Math.round(rr() * 90)); // any tempo from 90 to 180
+  redraw('m.bpm');
   setM('patLen', rr() < 0.5 ? 64 : 128); // phrases of 4 or 8 bars that evolve, with a fill at the end
   redraw('m.patLen');
   const g = generate({ ...S.gen, accent: S.base[NV_ + M.accent], len: S.base[NV_ + M.patLen] });

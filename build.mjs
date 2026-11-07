@@ -15,7 +15,7 @@ const engine = ENGINE.map((f) => `// ---- ${f}.js\n` + strip(read(`src/${f}.js`)
 const worklet = engine + '\n' + read('src/worklet.js');
 
 const UI = ['core', 'widgets', 'perf', 'mutes', 'pages/beat', 'pages/voice', 'pages/fx', 'pages/mix', 'pages/mstr', 'pages/prst',
-  'randomise', 'colourpicker', 'recorder', 'midi', 'keys', 'main'];
+  'randomise', 'autolevel', 'colourpicker', 'recorder', 'midi', 'keys', 'main'];
 const ui = UI.filter((f) => existsSync(new URL(`src/ui/${f}.js`, import.meta.url))).map((f) => `// ---- ui/${f}.js\n` + read(`src/ui/${f}.js`)).join('\n');
 
 // built-in presets: presets/*.json, each { presets: [...] }

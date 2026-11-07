@@ -114,6 +114,10 @@ function openOptions() {
   body.append(
     chk('randomise on next bar', () => S.opts.nextBar, (v) => (S.opts.nextBar = v)),
     chk('wild ranges (not drum-safe)', () => S.opts.wild, (v) => (S.opts.wild = v)),
+    chk('auto-level drums after randomise', () => S.opts.autoLevel, (v) => {
+      S.opts.autoLevel = v;
+      try { localStorage.setItem('fmdm.autoLevel', v ? '1' : '0'); } catch {}
+    }),
     h('div', '', 'screen colour'),
     sw,
     picker,
@@ -142,6 +146,7 @@ function frame() {
 
 function boot() {
   setLcdColour(lcdColour(), false);
+  try { if (localStorage.getItem('fmdm.autoLevel') === '0') S.opts.autoLevel = false; } catch {}
   fitStage();
   addEventListener('resize', fitStage);
   addEventListener('orientationchange', () => setTimeout(fitStage, 250));
@@ -158,6 +163,6 @@ function boot() {
   requestAnimationFrame(frame);
   document.addEventListener('contextmenu', (e) => e.preventDefault());
   if ('serviceWorker' in navigator && /^(https:|http:\/\/localhost)/.test(location.href)) navigator.serviceWorker.register('sw.js').catch(() => {});
-  window.__fmdm = { S, applyPreset, BUILTIN_PRESETS, togglePlay, showPage };
+  window.__fmdm = { S, applyPreset, BUILTIN_PRESETS, togglePlay, showPage, runRandom, measureHit, NP, P };
 }
 boot();

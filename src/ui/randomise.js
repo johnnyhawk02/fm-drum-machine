@@ -101,9 +101,8 @@ function rndFx(depth, chance, alter) {
 }
 function rndMix(depth) {
   for (let v = 0; v < 6; v++) {
-    const gl = v * NP + P.level;
+    // levels are never randomised: only auto-level (options) sets them
     const gp = v * NP + P.pan;
-    S.base[gl] += (0.45 + rr() * 0.5 - S.base[gl]) * depth * 0.5;
     S.base[gp] += ((rr() * 2 - 1) * 0.5 - S.base[gp]) * depth;
   }
 }
@@ -145,6 +144,7 @@ function runRandom(name) {
   else if (name === 'crossfeed') rndXfeed(d);
   else if (name === 'fx') rndFx(d, r.chance, false);
   else if (name === 'alterfx') rndFx(d, r.chance, true);
+  if (S.opts.autoLevel && (name === 'everything' || name === 'kit' || name === 'alter')) autoLevel();
   sendAll(S.opts.nextBar && S.playing);
   dirty();
   if (S.opts.nextBar && S.playing) toast(`${r.label}: on next bar`);

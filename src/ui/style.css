@@ -1,8 +1,6 @@
 /* fm dm — grey-green LCD in a black bezel. One fixed 1440x900 stage, scaled to fit the window. */
 :root {
   --lcd: #a7b58c;
-  --lcd-hi: color-mix(in srgb, var(--lcd), white 14%);
-  --lcd-lo: color-mix(in srgb, var(--lcd), black 9%);
   --ink: #17200e;
   --dim: rgba(23, 32, 14, 0.16);
   --mid: rgba(23, 32, 14, 0.45);
@@ -22,13 +20,8 @@ button, input, select { font: inherit; color: inherit; }
 #stage { position: absolute; left: 50%; top: 50%; width: 1440px; height: 900px; transform-origin: 50% 50%; transform: translate(-50%, -50%);
   padding: 10px; background: var(--bezel); }
 #lcd { position: relative; width: 100%; height: 100%; border-radius: 10px; overflow: hidden;
-  background: radial-gradient(ellipse at 50% 40%, var(--lcd-hi), var(--lcd) 70%, var(--lcd-lo));
-  box-shadow: inset 0 0 0 2px #2a2f22, inset 0 0 40px rgba(0,0,0,.28);
+  background: var(--lcd);
   display: grid; grid-template-rows: 60px minmax(0, 1fr); }
-/* faint pixel grid */
-#lcd::after { content: ''; position: absolute; inset: 0; pointer-events: none;
-  background-image: linear-gradient(rgba(23,32,14,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(23,32,14,.035) 1px, transparent 1px);
-  background-size: 3px 3px; }
 
 /* ---- buttons: outlined, invert when on */
 .b { border: 2px solid var(--ink); background: transparent; border-radius: 3px; padding: 0 10px; height: 34px;

@@ -55,13 +55,40 @@ function portmanteau(r) {
   return f + k;
 }
 
+// syllables: consonants lead into the next vowel run, trailing consonants stay on the last one
+function sylls(w) {
+  return w.match(/[^aeiouyéèêâûô]*[aeiouyéèêâûô]+(?:[^aeiouyéèêâûô]+$)?/g) || [w];
+}
+// chop a word into syllables and shuffle them with syllables from another themed word
+function scramble(w, r) {
+  const pool = NAME_THEMES.flatMap((t) => NAME_WORDS[t]).filter((x) => !x.includes(' ') && x.length >= 5);
+  for (let tries = 0; tries < 8; tries++) {
+    const mine = sylls(w), theirs = sylls(pool[r.next() % pool.length]);
+    const bits = [...mine, ...theirs.filter(() => r.next() % 2)];
+    for (let i = bits.length - 1; i > 0; i--) {
+      const j = r.next() % (i + 1);
+      [bits[i], bits[j]] = [bits[j], bits[i]];
+    }
+    const out = bits.slice(0, 2 + (r.next() % 3)).join('');
+    if (out !== w && out.length >= 4 && out.length <= 13) return out;
+  }
+  return w;
+}
 function presetName(seed) {
   const r = new Rng((seed * 2654435761 + 7) >>> 0);
   const pick = (list) => list[r.next() % list.length];
   const word = () => pick(NAME_WORDS[pick(NAME_THEMES)]);
   const k = r.next() % 20;
-  if (k < 9) return portmanteau(r) + ' ' + word(); // a made-up blend and a real term
-  if (k < 12) return portmanteau(r) + ' ' + portmanteau(r);
-  if (k < 18) return word() + ' ' + word(); // two themed words, often from different themes
-  return word() + ' ' + alienName(seed).split(' ')[0];
+  let name;
+  if (k < 9) name = portmanteau(r) + ' ' + word(); // a made-up blend and a real term
+  else if (k < 12) name = portmanteau(r) + ' ' + portmanteau(r);
+  else if (k < 17) name = word() + ' ' + word(); // two themed words, often from different themes
+  else name = word() + ' ' + alienName(seed).split(' ')[0];
+  if (r.next() % 2) return name;
+  // half the time: chop at least one word into syllables and scramble it with others
+  const parts = name.split(' ');
+  const i = r.next() % parts.length;
+  parts[i] = scramble(parts[i], r);
+  if (parts.length > 1 && r.next() % 4 === 0) parts[(i + 1) % parts.length] = scramble(parts[(i + 1) % parts.length], r);
+  return parts.join(' ');
 }

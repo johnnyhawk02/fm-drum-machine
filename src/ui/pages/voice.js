@@ -1,4 +1,4 @@
-// fm/dm — VOICE page: drum picker (click auditions, shift-click hat = open), then tabs tone/fm, shape, filter, mod.
+// fm/dm — VOICE page: drum picker (click auditions, shift-click hat = open, right-click / long-press randomises that drum), then tabs tone/fm, shape, filter, mod.
 
 let curVoice = 0;
 let curVTab = 'tone/fm';
@@ -41,6 +41,29 @@ function buildVoice() {
       setVoice(v);
       startAudio().then(() => post({ t: 'trig', v, vel: 1, alt: v === 5 && e.shiftKey ? 1 : 0 }));
     });
+    // right-click (or long-press on a touch screen) randomises just this drum and plays it
+    const rndThis = () => {
+      setVoice(v);
+      runRandomVoice(v);
+      if (!S.playing) startAudio().then(() => post({ t: 'trig', v, vel: 1, alt: 0 }));
+    };
+    b.title = 'click: play · right-click or long-press: randomise this drum';
+    b.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      if (!held) rndThis();
+    });
+    let holdT = 0, held = false;
+    b.addEventListener('pointerdown', (e) => {
+      held = false;
+      if (e.pointerType === 'mouse') return;
+      holdT = setTimeout(() => { held = true; rndThis(); }, 550);
+    });
+    const cancel = () => clearTimeout(holdT);
+    b.addEventListener('pointerup', cancel);
+    b.addEventListener('pointerleave', cancel);
+    b.addEventListener('pointercancel', cancel);
+    // a long-press should not also play the old sound
+    b.addEventListener('click', (e) => { if (held) { e.stopImmediatePropagation(); held = false; } }, true);
     pick.append(b);
     return b;
   });

@@ -246,6 +246,25 @@ function runRandom(name) {
   if (S.opts.nextBar && S.playing) toast(`${r.label}: on next bar`);
 }
 
+// one drum only (right-click or long-press a drum button on the voice page): a kit randomise of
+// that drum's sound, then auto-level just that drum. go mental and wild ranges apply as usual.
+function runRandomVoice(v) {
+  pushUndo();
+  const mental = S.opts.mental;
+  const wild0 = S.opts.wild;
+  if (mental && rr() < 0.3) S.opts.wild = true;
+  const r = RND.kit;
+  const d = mental ? r.depth + (1 - r.depth) * 0.3 : r.depth;
+  const chance = mental ? Object.fromEntries(Object.keys(r.chance).map((k) => [k, r.chance[k] + (1 - r.chance[k]) * 0.3])) : r.chance;
+  rndVoice(v, d, chance, false);
+  S.opts.wild = wild0;
+  if (S.opts.autoLevel) autoLevel([0, 1, 2, 3, 4, 5].map((i) => i === v));
+  const atBar = S.opts.nextBar && S.playing;
+  sendAll(atBar);
+  dirty();
+  toast(`${VOICE_NAMES[v]} randomised${atBar ? ' on next bar' : ''}`);
+}
+
 // one "randomise" button in the title line opens a drop-down with every randomiser and undo
 function buildRandomisers(host) {
   const open = btn('randomise ▾', 'sm rndopen');

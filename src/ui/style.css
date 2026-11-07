@@ -1,4 +1,4 @@
-/* fm dm — grey-green LCD in a black bezel. One fixed 1440x900 stage, scaled to fit the window. */
+/* fm/dm — grey-green LCD in a black bezel. One fixed 1440x900 stage, scaled to fit the window. */
 :root {
   --lcd: #d1c7ac;
   --spot: #e0532a; /* the one spot colour: playing, recording, the playhead, the selected control */
@@ -222,3 +222,10 @@ input[type=text], input[type=search] { background: transparent; border: 2px soli
 #quick .qb { height: auto; min-height: 56px; font-size: 24px; white-space: normal; line-height: 1.1; padding: 4px; text-transform: lowercase; touch-action: manipulation; }
 #quick .qb.on { background: var(--spot); border-color: var(--spot); color: var(--lcd); }
 #quick .qb.save { background: var(--ink); color: var(--lcd); }
+/* desktop: a small upright box over the app instead of the full-screen phone pad */
+#quick.desk { background: transparent; }
+#quick.desk .qinner { width: 360px; height: auto; background: var(--lcd); border: 2px solid var(--ink); border-radius: 6px; padding: 8px; gap: 8px; }
+#quick.desk .qstatus { font-size: 18px; padding: 2px; }
+#quick.desk .qgrid { grid-template-columns: repeat(3, 1fr); grid-auto-rows: auto; gap: 6px; }
+#quick.desk .qb { min-height: 34px; font-size: 16px; }
+#quick.desk .qb.flip { display: none; }

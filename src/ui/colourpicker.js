@@ -1,4 +1,4 @@
-// fm dm — colour picker in the style of a paint program: a saturation/brightness square,
+// fm/dm — colour picker in the style of a paint program: a saturation/brightness square,
 // a hue strip, new/old preview, and H S B, R G B and hex fields that all stay in step.
 
 function hsvToRgb(h, s, v) {

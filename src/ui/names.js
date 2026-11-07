@@ -1,4 +1,4 @@
-// fm dm — automatic preset names: two words drawn from themed lists (French kitchen terms, puddings,
+// fm/dm — automatic preset names: two words drawn from themed lists (French kitchen terms, puddings,
 // space, geology, crystals and rocks) with the odd made-up alien word mixed in.
 
 const NAME_WORDS = {

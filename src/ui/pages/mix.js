@@ -1,4 +1,4 @@
-// fm dm — MIX page: a strip per drum (sends, pan, level fader with meter, mute, solo).
+// fm/dm — MIX page: a strip per drum (sends, pan, level fader with meter, mute, solo).
 
 const mixMeters = [];
 function buildMix() {

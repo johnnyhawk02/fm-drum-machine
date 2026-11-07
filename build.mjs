@@ -45,7 +45,7 @@ writeFileSync(new URL('dist/sw.js', import.meta.url), read('src/static/sw.js').r
 writeFileSync(new URL('dist/_headers', import.meta.url), '/\n  Cache-Control: no-cache\n/index.html\n  Cache-Control: no-cache\n/sw.js\n  Cache-Control: no-cache\n');
 // help page: the same help as the ? dialog, in the LCD look
 const HELP = new Function(`return ${/const HELP = (\[[\s\S]*?\n\]);/.exec(read('src/ui/keys.js'))[1]}`)();
-writeFileSync(new URL('dist/help.html', import.meta.url), `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>fm dm help</title>
+writeFileSync(new URL('dist/help.html', import.meta.url), `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>fm/dm help</title>
 <style>${fontCss}body{margin:0;background:#0b0c0a;padding:16px;font-family:VT323,monospace;color:#17200e}main{max-width:900px;margin:0 auto;background:#d1c7ac;border-radius:10px;padding:20px 28px;font-size:22px}h1{font-weight:normal;letter-spacing:.1em}h2{font-weight:normal;letter-spacing:.14em;text-transform:uppercase;border-top:2px solid #17200e;padding-top:8px;margin:18px 0 4px;font-size:22px}a{color:inherit}</style>
 <main><h1>FM DM · HELP</h1><p><a href="./">back to the drum machine</a></p>${HELP.map(([a, b]) => `<h2>${a}</h2><p>${b}</p>`).join('')}</main>`);
 console.log(`dist/index.html: ${(page.length / 1024).toFixed(1)} KB, ${presets.length} built-in presets`);

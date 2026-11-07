@@ -1,4 +1,4 @@
-// Makes presets/factory.json: built-in presets for fm dm, from the starting kit with seeded variations.
+// Makes presets/factory.json: built-in presets for fm/dm, from the starting kit with seeded variations.
 //   node tools/make-presets.mjs
 import { writeFileSync } from 'node:fs';
 import { PARAMS, MPARAMS, NP, P, toNorm, fromNorm, defaultMaster } from '../src/engine/params.js';
@@ -62,5 +62,5 @@ const presets = DEFS.map(([name, genre, bpm, beat, energy, fills, spread, vo, mo
   if (n % 3 === 0) lanes.push({ key: 'v3.nCut', steps: Array.from({ length: 16 }, (_, i) => Math.sin((i / 16) * Math.PI * 2)), len: 16, slew: 0.5, speed: 2, depth: 0.25, groove: true });
   return { v: 1, name, ts: 0, voices, master, pat, lanes, gen: { genre, beat, energy, fills, density: [1, 1, 1, 1, 1, 1], seed: n + 1 }, perf: PERF };
 });
-writeFileSync(new URL('../presets/factory.json', import.meta.url), JSON.stringify({ app: 'fm dm', v: 1, presets }, null, 0));
+writeFileSync(new URL('../presets/factory.json', import.meta.url), JSON.stringify({ app: 'fm/dm', v: 1, presets }, null, 0));
 console.log(`presets/factory.json: ${presets.length} presets`);

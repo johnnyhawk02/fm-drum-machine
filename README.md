@@ -1,6 +1,6 @@
-# fm dm
+# fm/dm
 
-fm dm is a six-voice FM drum machine for the browser. Plain JavaScript, AudioWorklet, no dependencies.
+fm/dm (frequency modulated drum machine) is a six-voice FM drum machine for the browser. Plain JavaScript, AudioWorklet, no dependencies.
 
 - `src/engine/` — voice engine (4-operator FM, pitch env, click, noise, filter, amp env, crush, LFO)
 - `npm test` — renders every voice in Node and checks it is not silent, not clipping and deterministic

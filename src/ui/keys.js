@@ -1,4 +1,4 @@
-// fm dm — keyboard: space play, 1-7 randomisers, u undo, z..n mutes, a..h echo mutes, q..y reverb mutes,
+// fm/dm — keyboard: space play, 1-7 randomisers, u undo, z..n mutes, a..h echo mutes, q..y reverb mutes,
 // shift+1-6 voice page, [ ] pages, o presets, / search, ? help, esc closes, arrows turn the selected knob.
 
 function bindKeys() {

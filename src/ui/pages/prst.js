@@ -1,4 +1,4 @@
-// fm dm — PRST page: presets saved in the browser under two-word alien names, favourites, search,
+// fm/dm — PRST page: presets saved in the browser under two-word alien names, favourites, search,
 // save new / save over, export / import, built-in presets. Loading while playing waits for the next bar.
 
 const PRESET_V = 1;
@@ -130,7 +130,7 @@ function deletePreset(name) {
   redraw('preset');
 }
 function exportPresets() {
-  const data = JSON.stringify({ app: 'fm dm', v: PRESET_V, presets: lsGet() }, null, 1);
+  const data = JSON.stringify({ app: 'fm/dm', v: PRESET_V, presets: lsGet() }, null, 1);
   const a = h('a');
   a.href = URL.createObjectURL(new Blob([data], { type: 'application/json' }));
   a.download = 'fm-dm-presets.json';

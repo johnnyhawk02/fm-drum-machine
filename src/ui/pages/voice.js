@@ -1,4 +1,4 @@
-// fm dm — VOICE page: drum picker (click auditions, shift-click hat = open), then tabs tone/fm, shape, filter, mod.
+// fm/dm — VOICE page: drum picker (click auditions, shift-click hat = open), then tabs tone/fm, shape, filter, mod.
 
 let curVoice = 0;
 let curVTab = 'tone/fm';

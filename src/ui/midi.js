@@ -1,4 +1,4 @@
-// fm dm — MIDI: perf knobs on CC 1..24 (any channel), CC 25..28 for the selected sequencer, user CC maps (learn).
+// fm/dm — MIDI: perf knobs on CC 1..24 (any channel), CC 25..28 for the selected sequencer, user CC maps (learn).
 
 const MIDI_LS = 'fmdm.midimap';
 let midiMap = {};

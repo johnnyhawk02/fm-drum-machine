@@ -1,6 +1,6 @@
 {
-  "name": "fm dm",
-  "short_name": "fm dm",
+  "name": "fm/dm",
+  "short_name": "fm/dm",
   "description": "A six-voice FM drum machine.",
   "start_url": "./",
   "scope": "./",

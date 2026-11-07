@@ -1,4 +1,4 @@
-// fm dm — FX page: echo, reverb, send buses (distortion, ring mod), crossfeed patchbay.
+// fm/dm — FX page: echo, reverb, send buses (distortion, ring mod), crossfeed patchbay.
 
 let curFxTab = 'echo';
 function buildFx() {

@@ -1,4 +1,4 @@
-// fm dm — mutes: a column per drum with meter, reverb and echo send boxes (each with a mute square)
+// fm/dm — mutes: a column per drum with meter, reverb and echo send boxes (each with a mute square)
 // and the drum's mute. Mutes act on notes, so tails ring on.
 
 const MUTE_KEYS = ['z', 'x', 'c', 'v', 'b', 'n'];

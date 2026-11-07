@@ -1,4 +1,4 @@
-// fm dm — pattern generator. Pure function of its options (seeded).
+// fm/dm — pattern generator. Pure function of its options (seeded).
 // Templates: one 16-step string per drum, digit = chance in tenths,
 // 'o' = open hat (chance 0.9), '.' = 0.
 

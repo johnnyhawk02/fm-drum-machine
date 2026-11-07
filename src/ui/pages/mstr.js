@@ -1,4 +1,4 @@
-// fm dm — MSTR page: kick sidechain duck, master distortion, compressor with gain-reduction meter, output.
+// fm/dm — MSTR page: kick sidechain duck, master distortion, compressor with gain-reduction meter, output.
 
 let grBar = null;
 let outL = null;

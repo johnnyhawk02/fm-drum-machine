@@ -1,4 +1,4 @@
-// fm dm — page shell: header, pages, stage scaling, frame loop, transport.
+// fm/dm — page shell: header, pages, stage scaling, frame loop, transport.
 
 let stageScale = 1;
 let stageW = 1440;
@@ -68,7 +68,7 @@ async function togglePlay() {
 function buildHeader() {
   const hd = $('hdr');
   hd.innerHTML = '';
-  hd.append(h('div', 'logo', 'fm dm'));
+  hd.append(h('div', 'logo', 'fm/dm'));
   hd.append(btn('options', 'sm', () => openOptions()), btn('?', 'sm', () => openHelp()));
   hd.append(btn('quick', 'sm', () => openQuick())); // TEMPORARY quick pad
   const rnd = h('div', 'rnd');

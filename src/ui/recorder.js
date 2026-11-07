@@ -1,4 +1,4 @@
-// fm dm — record a WAV: free (press rec, press again to stop) or an exact loop of 1..128 bars.
+// fm/dm — record a WAV: free (press rec, press again to stop) or an exact loop of 1..128 bars.
 
 const REC = { mode: 'loop', bars: 4, on: false, chunks: [] };
 function wavBlob(chunks, sr) {

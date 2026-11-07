@@ -1,4 +1,4 @@
-// fm dm service worker: cache the page so it works offline. Bump VER to refresh.
+// fm/dm service worker: cache the page so it works offline. Bump VER to refresh.
 const VER = 'fmdm-@VER@';
 const FILES = ['./', './index.html', './manifest.webmanifest', './icon.svg', './icon-512.png'];
 self.addEventListener('install', (e) => {

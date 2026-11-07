@@ -1,4 +1,4 @@
-// fm dm — auto-level after a randomise. Each drum is played once offline (the engine is plain JS
+// fm/dm — auto-level after a randomise. Each drum is played once offline (the engine is plain JS
 // and deterministic), its loudness is measured the way ears hear it, and its level is set so the
 // kit sits at a sensible balance. Piercing highs count extra, so harsh hats and cymbals come down.
 

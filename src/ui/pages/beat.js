@@ -1,4 +1,4 @@
-// fm dm — BEAT page: pattern generator, feel, rush (with its curve), density, step grid.
+// fm/dm — BEAT page: pattern generator, feel, rush (with its curve), density, step grid.
 
 function sect(title, ...kids) {
   const s = h('div', 'sect');

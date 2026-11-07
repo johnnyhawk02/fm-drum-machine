@@ -1,4 +1,4 @@
-// fm dm — one FM drum voice. 4 operators, pitch env, click, noise, filter,
+// fm/dm — one FM drum voice. 4 operators, pitch env, click, noise, filter,
 // amp env, crush, LFO. Mono (retrigger chokes itself: closed hat chokes open).
 
 import { P, NP } from './params.js';

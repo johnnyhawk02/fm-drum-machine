@@ -1,4 +1,4 @@
-// fm dm — PERF: 24 assignable knobs (MIDI CC 1..24) and the step sequencer strip under them.
+// fm/dm — PERF: 24 assignable knobs (MIDI CC 1..24) and the step sequencer strip under them.
 
 const PERF_DEFAULT = [
   'm.bpm', 'm.dkAmt', 'm.swDepth', 'gen.energy',

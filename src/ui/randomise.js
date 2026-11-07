@@ -25,14 +25,18 @@ const RND = {
 };
 const R_ORDER = ['everything', 'kit', 'alter', 'pattern', 'crossfeed', 'fx', 'alterfx', 'motion'];
 
-// motion: four random knobs each get a random step sequence at a different speed (1/16, 1/8, 1/4,
-// 1 bar) with a little random slew. Replaces the lanes the last motion made, keeps your own lanes.
+// motion: 4 to 8 random knobs each get a random step sequence, at fast rates (1/16, 1/8, 1/4 a step)
+// and slow ones (1, 2, 4 bars a step), with a little random slew. Replaces the lanes the last motion
+// made, keeps your own lanes.
 const MOTION_POOL = ['tune', 'fmLvl', 'fb', 'fmEnd', 'dA', 'dB', 'lB', 'pAmt', 'pDec', 'nCut', 'nDec', 'fCut', 'fRes', 'aDec', 'sEcho', 'sRev'];
 function rndMotion(depth) {
   S.lanes = S.lanes.map((ln) => (ln && ln.motion ? null : ln));
   const used = new Set();
-  const speeds = [0, 1, 2, 4].sort(() => rr() - 0.5); // indexes into SPEEDS
-  for (let k = 0; k < 4; k++) {
+  const count = 4 + Math.floor(rr() * 5);
+  // indexes into SPEEDS: each rate once, in random order, then random ones for the rest
+  const speeds = [0, 1, 2, 4, 5, 6].sort(() => rr() - 0.5);
+  while (speeds.length < count) speeds.push([0, 1, 2, 4, 5, 6][Math.floor(rr() * 6)]);
+  for (let k = 0; k < count; k++) {
     let g = -1;
     for (let tries = 0; tries < 50; tries++) {
       const v = Math.floor(rr() * 6);

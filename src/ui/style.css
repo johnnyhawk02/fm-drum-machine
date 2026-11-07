@@ -38,7 +38,9 @@ button, input, select { font: inherit; color: inherit; }
 
 /* ---- header */
 header { display: flex; align-items: center; gap: 8px; padding: 12px 18px 0; position: relative; z-index: 2; }
-header .logo { font-size: 30px; letter-spacing: .06em; margin-right: 6px; white-space: nowrap; }
+/* logo: the artwork is used as a mask, so it is printed in the ink colour on any screen colour (like multiply) */
+header .logo { width: 108px; height: 40px; margin-right: 8px; flex: none; font-size: 0; background: var(--ink);
+  -webkit-mask: url(logo.png) center / contain no-repeat; mask: url(logo.png) center / contain no-repeat; }
 header .logo small { font-size: 18px; opacity: .6; margin-left: 4px; }
 header .rnd { display: flex; gap: 6px; margin-left: 10px; }
 header .rnd .b { min-width: 84px; height: 36px; padding: 8px 8px 0; font-size: 18px; }

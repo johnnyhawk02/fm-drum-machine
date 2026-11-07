@@ -179,6 +179,6 @@ function boot() {
     });
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((r) => r.update()).catch(() => {});
   }
-  window.__fmdm = { S, presetName, applyPreset, BUILTIN_PRESETS, togglePlay, showPage, runRandom, measureHit, NP, P };
+  window.__fmdm = { S, presetName, presetNameRaw, isRude, NAME_WORDS, applyPreset, BUILTIN_PRESETS, togglePlay, showPage, runRandom, measureHit, NP, P };
 }
 boot();

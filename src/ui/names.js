@@ -6,7 +6,7 @@ const NAME_WORDS = {
     'garni', 'coulis', 'gratin', 'consommé', 'terrine', 'remoulade', 'beurre', 'blanc', 'noisette', 'meunière',
     'au jus', 'en croûte', 'papillote', 'brûlée', 'mousseline', 'sabayon', 'fumet', 'bisque', 'quenelle', 'duxelles',
     'chantilly', 'tuile', 'ganache', 'praline', 'mise', 'braisé', 'poché', 'glacé', 'liaison', 'nappe'],
-  pudding: ['trifle', 'crumble', 'roly poly', 'spotted dick', 'sponge', 'treacle tart', 'eton mess', 'syllabub',
+  pudding: ['trifle', 'crumble', 'roly poly', 'sponge', 'treacle tart', 'eton mess', 'syllabub',
     'fool', 'jam tart', 'bread pudding', 'clafoutis', 'pavlova', 'tiramisu', 'cobbler', 'parfait', 'blancmange',
     'jelly', 'custard', 'rice pudding', 'sticky toffee', 'bakewell', 'tarte tatin', 'semolina', 'charlotte',
     'soufflé', 'baked alaska', 'posset', 'cranachan', 'figgy duff'],
@@ -74,7 +74,7 @@ function scramble(w, r) {
   }
   return w;
 }
-function presetName(seed) {
+function presetNameRaw(seed) {
   const r = new Rng((seed * 2654435761 + 7) >>> 0);
   const pick = (list) => list[r.next() % list.length];
   const word = () => pick(NAME_WORDS[pick(NAME_THEMES)]);
@@ -105,4 +105,22 @@ function presetName(seed) {
   parts[i] = scramble(parts[i], r);
   if (parts.length > 1 && r.next() % 4 === 0) parts[(i + 1) % parts.length] = scramble(parts[(i + 1) % parts.length], r);
   return parts.join(' ');
+}
+
+// rude-word check: made-up and scrambled words can stumble into something nasty, so those get rerolled
+const RUDE_ANY = ['fuck', 'fuk', 'shit', 'cunt', 'kunt', 'wank', 'twat', 'nigg', 'nigga', 'fag', 'slut', 'whore', 'bitch', 'cock', 'dick',
+  'piss', 'rape', 'nazi', 'hitler', 'porn', 'penis', 'vagin', 'pussy', 'bollock', 'bastard', 'bugger', 'spunk', 'jizz', 'cum', 'tosser',
+  'knob', 'prick', 'boob', 'nonce', 'paki', 'spic', 'chink', 'kike', 'retard', 'tranny', 'dyke', 'poof', 'gook', 'wog', 'coon', 'shag', 'turd', 'crap'];
+const RUDE_WORD = ['ass', 'arse', 'anal', 'anus', 'tit', 'tits', 'fanny', 'sex', 'poo', 'pee', 'nob', 'kkk', 'damn', 'hell', 'puta', 'merde', 'con'];
+function isRude(name) {
+  const s = name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (RUDE_ANY.some((w) => s.includes(w))) return true;
+  return s.split(/[^a-z]+/).some((w) => RUDE_WORD.includes(w) || RUDE_WORD.some((r) => r.length > 3 && w.startsWith(r)));
+}
+function presetName(seed) {
+  for (let i = 0; i < 50; i++) {
+    const n = presetNameRaw(seed + i * 7919);
+    if (!isRude(n)) return n;
+  }
+  return presetNameRaw(seed);
 }

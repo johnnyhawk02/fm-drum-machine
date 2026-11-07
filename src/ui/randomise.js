@@ -132,6 +132,7 @@ function rndPattern(depth, chance) {
 function runRandom(name) {
   const r = RND[name];
   pushUndo();
+  const before = S.base.slice(0, 6 * NP);
   const d = r.depth;
   if (name === 'everything') {
     rndPattern(d, { genre: 0.6 });
@@ -144,7 +145,17 @@ function runRandom(name) {
   else if (name === 'crossfeed') rndXfeed(d);
   else if (name === 'fx') rndFx(d, r.chance, false);
   else if (name === 'alterfx') rndFx(d, r.chance, true);
-  if (S.opts.autoLevel && (name === 'everything' || name === 'kit' || name === 'alter')) autoLevel();
+  // auto-level once the new sound is settled, and only for drums whose sound actually changed
+  if (S.opts.autoLevel) {
+    const skip = new Set([P.level, P.trim, P.pan, P.sEcho, P.sRev, P.sDist, P.sRing]); // mix, not sound
+    const changed = [];
+    for (let v = 0; v < 6; v++) {
+      let ch = false;
+      for (let i = 0; i < NP && !ch; i++) if (!skip.has(i) && S.base[v * NP + i] !== before[v * NP + i]) ch = true;
+      changed.push(ch);
+    }
+    autoLevel(changed);
+  }
   sendAll(S.opts.nextBar && S.playing);
   dirty();
   if (S.opts.nextBar && S.playing) toast(`${r.label}: on next bar`);

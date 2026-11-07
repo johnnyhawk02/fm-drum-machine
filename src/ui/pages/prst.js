@@ -63,6 +63,7 @@ function applyPreset(pr) {
   });
   if (pr.gen) S.gen = { ...S.gen, ...pr.gen, density: pr.gen.density ? pr.gen.density.slice() : S.gen.density };
   if (pr.perf) pr.perf.forEach((k, i) => k !== S.perf[i] && setPerf(i, k));
+  if (S.opts.autoLevel) autoLevel(); // the sound is settled: even out each drum before its fader
   curPreset = pr.name;
   const wait = S.playing;
   sendAll(wait);

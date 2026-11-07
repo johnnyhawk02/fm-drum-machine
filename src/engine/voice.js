@@ -52,6 +52,7 @@ export class Voice {
     this.hPitch = 1;
     this.hIdx = 1;
     this.driftInc = 0;
+    this.trimG = 1;
     this.fixedMask = 0;
     this.pSemis = 0;
     this.burstGap = 0;
@@ -226,6 +227,7 @@ export class Voice {
     this.nfilt.set(p[b + P.nCut], p[b + P.nRes], sr);
     // velocity scalars
     this.velAmp = 1 - p[b + P.vLvl] * (1 - vel);
+    this.trimG = Math.pow(10, p[b + P.trim] / 20);
     const fmv = p[b + P.fmLvl];
     this.fmIdx = fmv * fmv * 4 * (1 - p[b + P.vFm] * (1 - vel)) * (1 + this.lFm) * this.hIdx;
   }
@@ -409,7 +411,7 @@ export class Voice {
     }
 
     // ---- level, pan
-    const lv = p[b + P.level] * this.velAmp * (1 - Math.abs(this.lLvl) * 0.5 + this.lLvl * 0.5);
+    const lv = p[b + P.level] * this.trimG * this.velAmp * (1 - Math.abs(this.lLvl) * 0.5 + this.lLvl * 0.5);
     x *= lv;
     if (this.fade > 0) x *= this.fade / FADE_N;
     this.mono = x;

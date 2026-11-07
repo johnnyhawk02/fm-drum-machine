@@ -155,6 +155,7 @@ function fmt(g, x = getG(g)) {
   if (id === 'rDecay') return x.toFixed(1) + 's';
   if (/^(a|d)[ABCD]$|Dec|Atk|Hold|Ms|Pre|^aDec2$|Space$|Rel$|^cAtk$/.test(id) && p.max > 1) return x >= 1000 ? (x / 1000).toFixed(2) + 's' : x.toFixed(x < 10 ? 1 : 0) + 'ms';
   if (id === 'cThr') return x.toFixed(0) + 'db';
+  if (id === 'trim') return (x > 0 ? '+' : '') + x.toFixed(1) + 'db';
   if (id === 'cMake') return '+' + x.toFixed(0) + 'db';
   if (id === 'cRatio') return x.toFixed(1) + ':1';
   if (id === 'bits') return x.toFixed(1);

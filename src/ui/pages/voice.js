@@ -12,7 +12,7 @@ const VTABS = {
   shape: [
     ['pitch env · click', ['pAmt', 'pDec', 'clk', 'clkType', 'clkDec']],
     ['amp', ['aAtk', 'aHold', 'aDec', 'aCurve', 'aDec2']],
-    ['out · crush', ['level', 'pan', 'bits', 'srDiv']],
+    ['out · crush', ['level', 'trim', 'pan', 'bits', 'srDiv']],
   ],
   filter: [
     ['filter', ['fType', 'fCut', 'fRes', 'fDrive', 'fEnv', 'fEnvDec']],

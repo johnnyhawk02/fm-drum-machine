@@ -116,6 +116,9 @@ function openOptions() {
     chk('wild ranges (not drum-safe)', () => S.opts.wild, (v) => (S.opts.wild = v)),
     chk('auto-level drums after randomise', () => S.opts.autoLevel, (v) => {
       S.opts.autoLevel = v;
+      pushUndo();
+      if (v) autoLevel(); else clearTrims();
+      sendAll();
       try { localStorage.setItem('fmdm.autoLevel', v ? '1' : '0'); } catch {}
     }),
     h('div', '', 'screen colour'),

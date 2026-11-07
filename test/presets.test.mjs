@@ -11,7 +11,7 @@ const keyG = (k) => k.startsWith('m.') ? NV + MPARAMS.find((p) => p.id === k.sli
 let fail = 0;
 for (const pr of presets) {
   const e = new Engine(SR, 1), s = new Sequencer(e, 1);
-  for (let v = 0; v < 6; v++) for (const p of PARAMS) s.setFlat(v * NP + p.i, pr.voices[v][p.id]);
+  for (let v = 0; v < 6; v++) for (const p of PARAMS) s.setFlat(v * NP + p.i, pr.voices[v][p.id] ?? p.def);
   for (const p of MPARAMS) s.setFlat(NV + p.i, pr.master[p.id] ?? p.def);
   pr.pat.forEach((row, t) => row.forEach((x, k) => { s.vel[t * MAX_STEPS + k] = x & 127; s.flag[t * MAX_STEPS + k] = x >> 7; }));
   pr.lanes.forEach((ln, l) => { s.lTarget[l] = keyG(ln.key); s.lSteps.set(ln.steps, l * MAX_STEPS); s.lLen[l] = ln.len; s.lSlew[l] = ln.slew; s.lSpeed[l] = ln.speed; s.lDepth[l] = ln.depth; s.lGroove[l] = ln.groove ? 1 : 0; });

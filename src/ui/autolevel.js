@@ -5,13 +5,15 @@
 const AL_SR = 48000;
 const AL_LEN = Math.round(AL_SR * 0.5);
 // loudness target per drum, in dB relative to the kick
-const AL_OFFSET = [0, -3, -4, -1.5, -9, -8];
+// (the faders still do the mix; this only evens out how loud each sound is before them)
+const AL_OFFSET = [0, 0, 0, 0, -3, -3];
 let alRef = null; // the kick of the starting kit, measured once: the loudness everything aims at
 
 // short-term ear-weighted loudness (dB) and peak of one hit at level 1
 function measureHit(block, seed) {
   const p = new Float32Array(block);
   p[P.level] = 1;
+  p[P.trim] = 0;
   p[P.pan] = 0;
   const vc = new Voice(AL_SR, seed);
   // ear weighting: cut the lows below ~60 Hz, add the presence region (2-5 kHz, where treble hurts)
@@ -46,21 +48,27 @@ function autoLevelRef() {
   if (alRef === null) {
     const k = kitToArray(INIT_KIT);
     const m = measureHit(k.subarray(0, NP), 1);
-    alRef = m.db + 20 * Math.log10(k[P.level]);
+    alRef = m.db;
   }
   return alRef;
 }
 
-// sets S.base levels for all six drums
-function autoLevel() {
+// sets each drum's trim (gain before its fader) for the drums marked in `only` (all six if left out);
+// the faders are never touched
+function autoLevel(only) {
   const ref = autoLevelRef();
   for (let v = 0; v < 6; v++) {
+    if (only && !only[v]) continue;
     const block = S.base.subarray(v * NP, v * NP + NP);
     const m = measureHit(block, v + 1);
     if (m.peak < 1e-4) continue; // silent voice: leave it
     let g = Math.pow(10, (ref + AL_OFFSET[v] - m.db) / 20);
     if (g * m.peak > 0.9) g = 0.9 / m.peak; // hard ceiling per drum
-    const p = PARAMS[P.level];
-    S.base[v * NP + P.level] = clamp(g, Math.max(p.min, 0.05), p.max);
+    const p = PARAMS[P.trim];
+    S.base[v * NP + P.trim] = clamp(20 * Math.log10(g), p.min, p.max);
   }
+}
+
+function clearTrims() {
+  for (let v = 0; v < 6; v++) S.base[v * NP + P.trim] = 0;
 }

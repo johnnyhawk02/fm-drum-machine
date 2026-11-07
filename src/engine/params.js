@@ -57,6 +57,7 @@ const SPEC = [
   ['aCurve', 0, 1, 0.5, 'lin', 'curve'],
   ['aDec2', 5, 6000, 600, 'exp', 'open dec'], // hihat open decay
   ['level', 0, 1, 0.8, 'lin', 'level'],
+  ['trim', -30, 12, 0, 'lin', 'auto trim'], // dB gain before the level fader, set by auto-level
   ['pan', -1, 1, 0, 'bip', 'pan'],
   // crush
   ['bits', 1, 16, 16, 'lin', 'bits'],

@@ -7,3 +7,10 @@ A six-voice FM drum machine for the browser. Plain JavaScript, AudioWorklet, no 
 - `npm run render` — same, and writes WAVs to `renders/`
 
 MIT licence.
+
+## Build
+
+    node build.mjs      # writes dist/index.html (one self-contained page)
+    npm test            # Node render + sequencer tests
+
+The VT323 font (SIL Open Font License) is embedded in the page.

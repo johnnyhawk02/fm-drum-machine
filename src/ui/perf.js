@@ -119,6 +119,10 @@ function buildSeq() {
     steps.append(c);
   }
   steps.append(h('div', 'zero'));
+  // slew overlay: the curve the knob actually follows, with slew smoothing the steps
+  const slewSvg = h('div', 'slew', '<svg viewBox="0 0 1600 100" preserveAspectRatio="none"><path/></svg>');
+  steps.append(slewSvg);
+  const slewPath = slewSvg.querySelector('path');
   // paint steps by dragging
   const paint = (e) => {
     const r = steps.getBoundingClientRect();
@@ -214,12 +218,37 @@ function buildSeq() {
       c.classList.toggle('cur', si === pos);
     });
     grooveB.classList.toggle('on', !!ln && ln.groove);
+    drawSlew(ln);
     const env = !!ln && !!ln.mode;
     modeB.textContent = env ? 'env' : 'slide';
     modeB.classList.toggle('on', env);
     shapes.hidden = env;
     envs.hidden = !env;
     envBs.forEach((b, k) => b.classList.toggle('on', k === envBrush));
+  }
+  // simulate the sequencer's smoothing (same time constant as the engine: slew x 0.35 of a step)
+  function drawSlew(ln) {
+    if (!ln || ln.slew <= 0.001) { slewPath.setAttribute('d', ''); return; }
+    const K = 20;
+    const a = 1 - Math.exp(-1 / K / (ln.slew * 0.35));
+    const tgt = (i, t) => {
+      const v = ln.steps[i % ln.len];
+      return ln.mode ? v * envShape(ln.shapes[i % ln.len], t) : v;
+    };
+    let y = tgt(ln.len - 1, 1);
+    for (let w = 0; w < 2; w++) for (let i = 0; i < ln.len; i++) for (let k = 0; k < K; k++) y += (tgt(i, k / K) - y) * a; // settle
+    // run up to the visible page, then draw it
+    for (let i = 0; i < seqPage * 16; i++) for (let k = 0; k < K; k++) y += (tgt(i, k / K) - y) * a;
+    let d = '';
+    for (let i = 0; i < 16; i++) {
+      const si = seqPage * 16 + i;
+      if (si >= ln.len) break;
+      for (let k = 0; k < K; k++) {
+        y += (tgt(si, k / K) - y) * a;
+        d += (d ? 'L' : 'M') + ((i + k / K) * 100).toFixed(1) + ' ' + (50 - y * 50).toFixed(1);
+      }
+    }
+    slewPath.setAttribute('d', d);
   }
   el.draw = drawSeq;
   watch('sel', drawSeq);

@@ -229,8 +229,8 @@ input[type=text], input[type=search] { background: transparent; border: 2px soli
 #quick .qb.save { background: var(--ink); color: var(--lcd); }
 /* desktop: a small upright box over the app instead of the full-screen phone pad */
 #quick.desk { background: transparent; }
-#quick.desk .qinner { width: 360px; height: auto; background: var(--lcd); border: 2px solid var(--ink); border-radius: 6px; padding: 8px; gap: 8px; }
-#quick.desk .qstatus { font-size: 18px; padding: 2px; }
-#quick.desk .qgrid { grid-template-columns: repeat(3, 1fr); grid-auto-rows: auto; gap: 6px; }
-#quick.desk .qb { min-height: 34px; font-size: 16px; }
+#quick.desk .qinner { width: 720px; height: auto; background: var(--lcd); border: 2px solid var(--ink); border-radius: 8px; padding: 14px; gap: 12px; }
+#quick.desk .qstatus { font-size: 30px; padding: 6px; }
+#quick.desk .qgrid { grid-template-columns: repeat(3, 1fr); grid-auto-rows: auto; gap: 12px; }
+#quick.desk .qb { min-height: 68px; font-size: 28px; }
 #quick.desk .qb.flip { display: none; }

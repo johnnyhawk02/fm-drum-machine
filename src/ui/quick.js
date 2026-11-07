@@ -22,6 +22,26 @@ function openQuick() {
   big('undo', () => { undo(); say('undone'); });
   big('save as preset', () => { saveNew(); say('saved ' + curPreset); }, 'save');
   big('close', () => q.remove(), 'close');
-  q.append(status, grid);
+  // the installed app is locked to landscape: when the screen is wider than tall on a phone, the pad is
+  // turned a quarter so it reads upright with the phone held upright. "flip" turns it the other way.
+  const inner = h('div', 'qinner');
+  big('flip', () => {
+    rot = rot === 90 ? -90 : 90;
+    try { localStorage.setItem('fmdm.quickRot', String(rot)); } catch {}
+    fit();
+  });
+  let rot = 90;
+  try { rot = +(localStorage.getItem('fmdm.quickRot') || 90); } catch {}
+  const fit = () => {
+    const w = innerWidth, hh = innerHeight;
+    const turn = w > hh && matchMedia('(pointer: coarse)').matches;
+    inner.style.width = (turn ? hh : w) + 'px';
+    inner.style.height = (turn ? w : hh) + 'px';
+    inner.style.transform = `translate(-50%, -50%)${turn ? ` rotate(${rot}deg)` : ''}`;
+  };
+  inner.append(status, grid);
+  q.append(inner);
   document.body.append(q);
+  fit();
+  addEventListener('resize', fit);
 }

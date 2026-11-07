@@ -45,8 +45,11 @@ function capture(name) {
 function applyPreset(pr) {
   if (!pr || pr.v !== PRESET_V) return toast('unknown preset format');
   pushUndo();
+  const bpm0 = S.base[NV_ + M.bpm];
   for (let v = 0; v < 6; v++) for (const p of PARAMS) S.base[v * NP + p.i] = pr.voices[v]?.[p.id] ?? defaultFor(v * NP + p.i);
   for (const p of MPARAMS) S.base[NV_ + p.i] = pr.master?.[p.id] ?? p.def;
+  if (!prstOpt.tempo) S.base[NV_ + M.bpm] = bpm0; // keep the current tempo
+  redraw('m.bpm');
   S.vel.fill(0);
   S.flag.fill(0);
   (pr.pat || []).forEach((row, t) => row.forEach((x, k) => {
@@ -67,7 +70,7 @@ function applyPreset(pr) {
   if (pr.perf) pr.perf.forEach((k, i) => k !== S.perf[i] && setPerf(i, k));
   if (S.opts.autoLevel) autoLevel(); // the sound is settled: even out each drum before its fader
   curPreset = pr.name;
-  const wait = S.playing;
+  const wait = S.playing && prstOpt.wait;
   sendAll(wait);
   redraw('pattern');
   redraw('preset');
@@ -160,6 +163,15 @@ function importPresets(files) {
   }
 }
 
+// load options, kept in the browser
+const prstOpt = { tempo: true, wait: true };
+try { Object.assign(prstOpt, JSON.parse(localStorage.getItem('fmdm.prstOpt') || '{}')); } catch {}
+const savePrstOpt = () => { try { localStorage.setItem('fmdm.prstOpt', JSON.stringify(prstOpt)); } catch {} };
+// startup: a random factory preset
+function loadRandomFactory() {
+  if (!BUILTIN_PRESETS.length) return;
+  applyPreset(BUILTIN_PRESETS[Math.floor(Math.random() * BUILTIN_PRESETS.length)]);
+}
 let prstSearch = null;
 function buildPrst() {
   const page = h('div');
@@ -181,6 +193,10 @@ function buildPrst() {
   dice.style.flex = 'none';
   dice.style.padding = '0 14px';
   nameRow.append(nn, dice);
+  const optRow = h('div', 'row');
+  optRow.style.cssText = 'align-items:center;gap:24px;font-size:20px';
+  optRow.append(chk('load with saved tempo', () => prstOpt.tempo, (v) => { prstOpt.tempo = v; savePrstOpt(); }),
+    chk('wait until next bar', () => prstOpt.wait, (v) => { prstOpt.wait = v; savePrstOpt(); }));
   const row2 = h('div', 'row');
   row2.style.alignItems = 'center';
   const search = h('input');
@@ -249,7 +265,7 @@ function buildPrst() {
     if (!items.length) list.append(h('div', 'dim', '<span style="font-size:20px">no presets yet: save new keeps everything (kit, beat, fx, mix, sequencers)</span>'));
   }
   watch('preset', draw);
-  page.append(top, nameRow, row2, list);
+  page.append(top, nameRow, optRow, row2, list);
   draw();
   return page;
 }

@@ -164,6 +164,7 @@ function boot() {
   buildMutes();
   buildTabs();
   regen(false);
+  loadRandomFactory(); // start on a random factory preset
   showPage('beat');
   if (typeof bindKeys === 'function') bindKeys();
   if (typeof initMidi === 'function') initMidi();

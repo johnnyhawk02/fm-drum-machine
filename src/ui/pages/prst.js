@@ -79,7 +79,7 @@ function allPresets() {
 function saveNew() {
   const list = lsGet();
   let name;
-  do name = alienName((Math.random() * 1e9) | 0);
+  do name = presetName((Math.random() * 1e9) | 0);
   while (list.some((p) => p.name === name));
   list.unshift(capture(name));
   lsSet(list);

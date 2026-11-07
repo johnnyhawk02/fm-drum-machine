@@ -32,7 +32,7 @@ const MOTION_POOL = ['tune', 'fmLvl', 'fb', 'fmEnd', 'dA', 'dB', 'lB', 'pAmt', '
 function rndMotion(depth) {
   S.lanes = S.lanes.map((ln) => (ln && ln.motion ? null : ln));
   const used = new Set();
-  const count = S.opts.mental ? 7 + Math.floor(rr() * 5) : 4 + Math.floor(rr() * 5);
+  const count = S.opts.mental ? 6 + Math.floor(rr() * 4) : 4 + Math.floor(rr() * 5);
   // indexes into SPEEDS: each rate once, in random order, then random ones for the rest
   const speeds = [0, 1, 2, 4, 5, 6].sort(() => rr() - 0.5);
   while (speeds.length < count) speeds.push([0, 1, 2, 4, 5, 6][Math.floor(rr() * 6)]);
@@ -158,19 +158,19 @@ function rndXfeed(depth) {
   for (let s = 0; s < 6; s++) for (let d = 0; d < 6; d++) S.base[NV_ + M[`xa${s}${d}`]] = 0;
   // drop sequences the last xmod randomise made
   S.lanes = S.lanes.map((ln) => (ln && ln.xmod ? null : ln));
-  const n = S.opts.mental ? 4 + Math.floor(rr() * 6) : 1 + Math.floor(rr() * (2 + depth * 4));
+  const n = S.opts.mental ? 3 + Math.floor(rr() * 5) : 1 + Math.floor(rr() * (2 + depth * 4));
   const set = [];
   for (let i = 0; i < n; i++) {
     const s = Math.floor(rr() * 6);
     let d = Math.floor(rr() * 5);
     if (d >= s) d++;
-    setM(`xa${s}${d}`, (S.opts.mental ? 0.1 + rr() * 0.55 : 0.05 + rr() * 0.45) * depth);
+    setM(`xa${s}${d}`, (S.opts.mental ? 0.08 + rr() * 0.45 : 0.05 + rr() * 0.45) * depth);
     setM(`xt${s}${d}`, Math.floor(rr() * 3));
     if (!set.includes(`xa${s}${d}`)) set.push(`xa${s}${d}`);
   }
   // at least half of the routings get a step sequence on their depth
   set.sort(() => rr() - 0.5);
-  const nSeq = S.opts.mental ? Math.ceil(set.length * 0.75) : Math.ceil(set.length / 2) + (rr() < 0.5 ? Math.floor(rr() * (set.length / 2)) : 0);
+  const nSeq = S.opts.mental ? Math.ceil(set.length * 0.65) : Math.ceil(set.length / 2) + (rr() < 0.5 ? Math.floor(rr() * (set.length / 2)) : 0);
   for (let i = 0; i < nSeq && i < set.length; i++) {
     const g = NV_ + M[set[i]];
     if (laneOf(g) >= 0) continue;
@@ -192,7 +192,7 @@ function rndPattern(depth, chance) {
   S.gen.beat = Math.floor(rr() * 64);
   if (rr() < (chance.energy ?? 1)) S.gen.energy = clamp(S.gen.energy + (0.25 + rr() * 0.6 - S.gen.energy) * depth, 0, 1);
   if (rr() < (chance.fills ?? 1)) S.gen.fills = clamp(S.gen.fills + (rr() * 0.7 - S.gen.fills) * depth, 0, 1);
-  if (S.opts.mental) { S.gen.energy = 0.55 + rr() * 0.35; S.gen.fills = 0.35 + rr() * 0.4; } // busier
+  if (S.opts.mental) { S.gen.energy = 0.5 + rr() * 0.3; S.gen.fills = 0.3 + rr() * 0.3; } // busier
   S.gen.seed = Math.floor(rr() * 1e6);
   setM('bpm', 90 + Math.round(rr() * 90)); // any tempo from 90 to 180
   redraw('m.bpm');
@@ -210,15 +210,15 @@ function runRandom(name) {
   const before = S.base.slice(0, 6 * NP);
   const mental = S.opts.mental;
   const wild0 = S.opts.wild;
-  if (mental && rr() < 0.5) S.opts.wild = true; // wild ranges half the time
-  const d = mental ? (r.depth + 1) / 2 : r.depth; // halfway to full depth
-  const ch = (c) => (mental ? Object.fromEntries(Object.keys(c).map((k) => [k, (c[k] + 1) / 2])) : c);
+  if (mental && rr() < 0.3) S.opts.wild = true; // wild ranges some of the time
+  const d = mental ? r.depth + (1 - r.depth) * 0.3 : r.depth; // a third of the way to full depth
+  const ch = (c) => (mental ? Object.fromEntries(Object.keys(c).map((k) => [k, c[k] + (1 - c[k]) * 0.3])) : c);
   if (name === 'everything') {
     rndPattern(d, mental ? { genre: 0.8 } : { genre: 0.6 });
     rndKit(d, ch(RND.kit.chance), false);
     rndFx(d, ch(RND.fx.chance), false);
     rndMix(d);
-    if (mental) { rndXfeed(0.8); rndMotion(0.8); }
+    if (mental) { rndXfeed(0.7); rndMotion(0.7); }
   } else if (name === 'kit') rndKit(d, ch(r.chance), false);
   else if (name === 'alter') rndKit(d, ch(r.chance), true);
   else if (name === 'pattern') rndPattern(d, ch(r.chance));

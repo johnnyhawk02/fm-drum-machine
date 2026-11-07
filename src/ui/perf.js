@@ -122,12 +122,15 @@ function buildSeq() {
     sendLane(l);
   };
   steps.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
     if (selG() < 0) return;
     steps.setPointerCapture(e.pointerId);
     paint(e);
-    const mv = (ev) => paint(ev);
+    const mv = (ev) => (ev.buttons ? paint(ev) : end());
+    const end = () => steps.removeEventListener('pointermove', mv);
     steps.addEventListener('pointermove', mv);
-    steps.addEventListener('pointerup', () => steps.removeEventListener('pointermove', mv), { once: true });
+    steps.addEventListener('pointerup', end, { once: true });
+    steps.addEventListener('pointercancel', end, { once: true });
   });
   const ctl = h('div', 'ctl');
   const SP = SPEEDS;

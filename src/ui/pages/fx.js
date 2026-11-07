@@ -85,6 +85,7 @@ function buildXfeed() {
         let y0 = e.clientY;
         moved = false;
         const mv = (ev) => {
+          if (!ev.buttons) return c.removeEventListener('pointermove', mv);
           const dy = (y0 - ev.clientY) / stageScale;
           if (Math.abs(dy) < 1) return;
           y0 = ev.clientY;

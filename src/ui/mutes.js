@@ -66,6 +66,7 @@ function buildMutes() {
 }
 function levelDrag(el, m) {
   const at = (e) => {
+    if (!e.buttons) return;
     const r = el.getBoundingClientRect();
     m.set(clamp(1 - (e.clientY - r.top) / r.height, 0, 1));
   };
@@ -79,15 +80,17 @@ function levelDrag(el, m) {
       el.removeEventListener('pointermove', at);
       el.removeEventListener('pointerup', up);
       el.removeEventListener('pointercancel', up);
+      el.removeEventListener('lostpointercapture', up);
     };
     el.addEventListener('pointermove', at);
     el.addEventListener('pointerup', up);
     el.addEventListener('pointercancel', up);
+    el.addEventListener('lostpointercapture', up);
   });
   el.addEventListener('dblclick', () => m.set(m.def));
   el.addEventListener('wheel', (e) => {
     e.preventDefault();
-    select(m.key);
+    if (S.sel !== m.key) return;
     m.set(clamp(m.get() - Math.sign(e.deltaY) * 0.02, 0, 1));
   }, { passive: false });
 }

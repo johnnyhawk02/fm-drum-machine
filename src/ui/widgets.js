@@ -66,6 +66,7 @@ function bindDrag(el, getM, opts = {}) {
     let acc = 0;
     let pushed = false;
     const move = (ev) => {
+      if (!ev.buttons) return up(); // button already released: never change a value on hover
       const dy = (y0 - ev.clientY) / stageScale;
       y0 = ev.clientY;
       if (!pushed && dy) {
@@ -88,16 +89,19 @@ function bindDrag(el, getM, opts = {}) {
       el.removeEventListener('pointermove', move);
       el.removeEventListener('pointerup', up);
       el.removeEventListener('pointercancel', up);
+      el.removeEventListener('lostpointercapture', up);
     };
     el.addEventListener('pointermove', move);
     el.addEventListener('pointerup', up);
     el.addEventListener('pointercancel', up);
+    el.addEventListener('lostpointercapture', up);
   });
+  // the wheel only turns a control that is already selected (clicked), so scrolling past it does nothing
   el.addEventListener('wheel', (e) => {
     const m = getM();
     if (!m) return;
     e.preventDefault();
-    if (!m.noSelect) select(m.key);
+    if (!m.noSelect && S.sel !== m.key) return;
     nudge(m, e.deltaY < 0 ? 1 : -1, e.shiftKey);
   }, { passive: false });
   el.addEventListener('dblclick', () => {

@@ -81,6 +81,7 @@ function colourPicker(start, onChange) {
     e.preventDefault();
     el.setPointerCapture(e.pointerId);
     const go = (ev) => {
+      if (!ev.buttons) return;
       const r = el.getBoundingClientRect();
       fn(clamp((ev.clientX - r.left) / r.width, 0, 1), clamp((ev.clientY - r.top) / r.height, 0, 1));
       commit();

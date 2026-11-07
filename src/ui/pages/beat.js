@@ -35,11 +35,14 @@ function buildBeat() {
     setG(NV_ + M[`rc${i}`], clamp(1 - (e.clientY - r.top) / r.height, 0, 1));
   };
   curve.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
     curve.setPointerCapture(e.pointerId);
     paint(e);
-    const mv = (ev) => paint(ev);
+    const mv = (ev) => (ev.buttons ? paint(ev) : end());
+    const end = () => curve.removeEventListener('pointermove', mv);
     curve.addEventListener('pointermove', mv);
-    curve.addEventListener('pointerup', () => curve.removeEventListener('pointermove', mv), { once: true });
+    curve.addEventListener('pointerup', end, { once: true });
+    curve.addEventListener('pointercancel', end, { once: true });
   });
   const rushRow = krow(['m.rushEvery', 'm.rushLen', 'm.rushVoice', 'm.rushRate', 'm.rushHp']);
   const curveWrap = h('div');

@@ -172,6 +172,7 @@ function buildRandomisers(wrap) {
       const d0 = r.depth;
       holdT = setTimeout(() => { held = true; rndDialog(name); }, 550);
       const mv = (ev) => {
+        if (!ev.buttons) return b.removeEventListener('pointermove', mv);
         const dy = (y0 - ev.clientY) / stageScale;
         if (Math.abs(dy) > 3) { moved = true; clearTimeout(holdT); }
         if (moved) { r.depth = clamp(Math.round((d0 + dy / 150) * 10) / 10, 0.1, 1); drawD(); toast(`${r.label} depth ${Math.round(r.depth * 100)}%`); }

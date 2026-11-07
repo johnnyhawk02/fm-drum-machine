@@ -76,16 +76,28 @@ function allPresets() {
   const names = new Set(mine.map((p) => p.name));
   return [...mine.map((p) => ({ ...p, mine: true })), ...BUILTIN_PRESETS.filter((p) => !names.has(p.name)).map((p) => ({ ...p, builtin: true }))];
 }
-function saveNew() {
+// the name the next "save new" will use; the dice rolls a fresh one
+let nextName = '';
+function rollName() {
   const list = lsGet();
   let name;
   do name = presetName((Math.random() * 1e9) | 0);
-  while (list.some((p) => p.name === name));
+  while (list.some((p) => p.name === name) || name === nextName);
+  nextName = name;
+  redraw('nextname');
+  return name;
+}
+function saveNew() {
+  const list = lsGet();
+  if (!nextName || list.some((p) => p.name === nextName)) rollName();
+  const name = nextName;
+  nextName = '';
   list.unshift(capture(name));
   lsSet(list);
   curPreset = name;
   redraw('preset');
   toast('saved ' + name);
+  rollName();
 }
 function saveOver() {
   if (!curPreset) return saveNew();
@@ -156,6 +168,18 @@ function buildPrst() {
   cur.style.cssText = 'font-size:24px;flex:2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
   // TEMPORARY: quick content generation, randomise everything right next to save
   top.append(cur, btn('rnd everything', '', () => runRandom('everything')), btn('save new', '', saveNew), btn('save over', '', saveOver));
+  // the name the next save will get, with a dice to roll another
+  const nameRow = h('div', 'row');
+  nameRow.style.alignItems = 'center';
+  const nn = h('div', '', '');
+  nn.style.cssText = 'font-size:22px;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
+  const drawNN = () => (nn.textContent = 'save new as: ' + (nextName || rollName()));
+  watch('nextname', drawNN);
+  drawNN();
+  const dice = btn('🎲 new name', 'sm', rollName);
+  dice.style.flex = 'none';
+  dice.style.padding = '0 14px';
+  nameRow.append(nn, dice);
   const row2 = h('div', 'row');
   row2.style.alignItems = 'center';
   const search = h('input');
@@ -216,7 +240,7 @@ function buildPrst() {
     if (!items.length) list.append(h('div', 'dim', '<span style="font-size:20px">no presets yet: save new keeps everything (kit, beat, fx, mix, sequencers)</span>'));
   }
   watch('preset', draw);
-  page.append(top, row2, list);
+  page.append(top, nameRow, row2, list);
   draw();
   return page;
 }

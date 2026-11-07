@@ -20,7 +20,8 @@ function openQuick() {
   }, S.playing ? 'on' : '');
   for (const name of R_ORDER) big(RND[name].label, () => { runRandom(name); say(RND[name].label + ' done'); });
   big('undo', () => { undo(); say('undone'); });
-  big('save as preset', () => { saveNew(); say('saved ' + curPreset); }, 'save');
+  big('🎲 name', () => say('next name: ' + rollName()));
+  big('save as preset', () => { saveNew(); say('saved ' + curPreset + ' · next: ' + nextName); }, 'save');
   big('close', () => q.remove(), 'close');
   // the installed app is locked to landscape: when the screen is wider than tall on a phone, the pad is
   // turned a quarter so it reads upright with the phone held upright. "flip" turns it the other way.

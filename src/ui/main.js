@@ -82,7 +82,7 @@ function buildHeader() {
 }
 // ---- screen colour (saved in this browser). Light colours only, so the dark ink stays readable.
 const LCD_COLOURS = [
-  ['green', '#a7b58c'], ['grey', '#b4b8ad'], ['amber', '#d4b26a'],
+  ['beige', '#d1c7ac'], ['green', '#a7b58c'], ['grey', '#b4b8ad'], ['amber', '#d4b26a'],
   ['blue', '#9fb6c4'], ['paper', '#d8dccf'], ['rose', '#d4a9a9'],
 ];
 function lcdColour() {

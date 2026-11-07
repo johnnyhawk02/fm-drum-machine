@@ -100,3 +100,79 @@ export function fromNorm(p, n) {
 export function defaultVoice() {
   return PARAMS.map((p) => p.def);
 }
+
+// ---- master / fx block (one flat array, MP entries)
+export const ECHO_DIVS = [
+  ['1/32', 0.125], ['1/16t', 1 / 6], ['1/16', 0.25], ['1/8t', 1 / 3], ['1/16d', 0.375], ['1/8', 0.5],
+  ['1/4t', 2 / 3], ['1/8d', 0.75], ['1/4', 1], ['1/2t', 4 / 3], ['1/4d', 1.5], ['1/2', 2], ['1 bar', 4],
+]; // in beats
+export const DIST_TYPES = ['tube', 'fold', 'clip', 'tape'];
+
+const MSPEC = [
+  ['bpm', 40, 240, 120, 'lin', 'bpm'],
+  // echo
+  ['eSync', 0, 1, 1, 'int', 'sync'],
+  ['eDiv', 0, 12, 7, 'int', 'time'],
+  ['eMs', 1, 2000, 300, 'exp', 'free ms'],
+  ['eFine', -1, 1, 0, 'bip', 'fine %'],
+  ['eTone', 200, 16000, 4000, 'exp', 'tone'],
+  ['eFb', 0, 0.95, 0.4, 'lin', 'fdbk'],
+  ['eWidth', 0, 1, 0.7, 'lin', 'width'],
+  ['ePing', 0, 1, 1, 'int', 'ping'],
+  ['eLvl', 0, 1, 0.7, 'lin', 'return'],
+  // reverb
+  ['rPre', 0, 250, 15, 'lin', 'pre'],
+  ['rDecay', 0.2, 20, 2.2, 'exp', 'decay'],
+  ['rTone', 500, 16000, 6000, 'exp', 'tone'],
+  ['rEarly', 0, 1, 0.4, 'lin', 'early'],
+  ['rLvl', 0, 1, 0.6, 'lin', 'return'],
+  // distortion send bus
+  ['sdDrive', 0, 1, 0.5, 'lin', 'drive'],
+  ['sdTone', 200, 16000, 6000, 'exp', 'tone'],
+  ['sdLvl', 0, 1, 0.6, 'lin', 'return'],
+  // ring send bus
+  ['rmHz', 20, 4000, 330, 'exp', 'ring hz'],
+  ['rmLvl', 0, 1, 0.6, 'lin', 'return'],
+  // sidechain duck from kick
+  ['dkAmt', 0, 1, 0, 'lin', 'duck'],
+  ['dkRel', 10, 1000, 180, 'exp', 'release'],
+  ['dkSpace', 0, 1, 0.5, 'lin', 'space'],
+  // master high-pass (rush rises it)
+  ['mHp', 20, 2000, 20, 'exp', 'hp'],
+  // master distortion
+  ['mdType', 0, 3, 0, 'int', 'type'],
+  ['mdDrive', 0, 1, 0.2, 'lin', 'drive'],
+  ['mdColour', -1, 1, 0, 'bip', 'colour'],
+  ['mdTone', 500, 20000, 16000, 'exp', 'tone'],
+  ['mdMix', 0, 1, 0, 'lin', 'mix'],
+  ['mdVol', 0, 2, 1, 'lin', 'volume'],
+  // compressor
+  ['cThr', -40, 0, -12, 'lin', 'thresh'],
+  ['cRatio', 1, 20, 3, 'exp', 'ratio'],
+  ['cAtk', 0.1, 100, 5, 'exp', 'attack'],
+  ['cRel', 10, 1000, 120, 'exp', 'release'],
+  ['cMake', 0, 24, 2, 'lin', 'makeup'],
+  ['cMix', 0, 1, 1, 'lin', 'mix'],
+  ['mVol', 0, 1.5, 0.6, 'lin', 'master'],
+  // mixer: per voice mute/solo and send mutes
+  ...[0, 1, 2, 3, 4, 5].flatMap((v) => [
+    [`mute${v}`, 0, 1, 0, 'int', `mute ${v + 1}`],
+    [`solo${v}`, 0, 1, 0, 'int', `solo ${v + 1}`],
+    [`eMute${v}`, 0, 1, 0, 'int', `echo mute ${v + 1}`],
+    [`rMute${v}`, 0, 1, 0, 'int', `verb mute ${v + 1}`],
+  ]),
+  // crossfeed 6x6: amount and target (0 fm, 1 filter, 2 ring) per src>dst
+  ...[0, 1, 2, 3, 4, 5].flatMap((s) =>
+    [0, 1, 2, 3, 4, 5].flatMap((d) => [
+      [`xa${s}${d}`, 0, 1, 0, 'lin', `xf ${s + 1}>${d + 1}`],
+      [`xt${s}${d}`, 0, 2, 0, 'int', `xf tgt ${s + 1}>${d + 1}`],
+    ])
+  ),
+];
+export const XF_TARGETS = ['fm', 'filter', 'ring'];
+export const MPARAMS = MSPEC.map(([id, min, max, def, curve, label], i) => ({ id, i, min, max, def, curve, label }));
+export const MP = MPARAMS.length;
+export const M = Object.fromEntries(MPARAMS.map((p) => [p.id, p.i]));
+export function defaultMaster() {
+  return MPARAMS.map((p) => p.def);
+}

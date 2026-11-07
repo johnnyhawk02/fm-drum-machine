@@ -1,6 +1,6 @@
 // Node test: render each voice, check not silent / not clipping / deterministic.
 import { Engine } from '../src/engine/engine.js';
-import { VOICE_NAMES } from '../src/engine/params.js';
+import { VOICE_NAMES, P, M, NP } from '../src/engine/params.js';
 import { writeWav } from './wav.mjs';
 import { mkdirSync } from 'node:fs';
 import { createHash } from 'node:crypto';
@@ -33,9 +33,10 @@ for (let v = 0; v < 6; v++) {
   }
 }
 
-// beat: 2 bars at 120 bpm
-{
-  const e = new Engine(SR, 1), step = SR * 60 / 120 / 4, n = step * 32;
+// beat: 2 bars at 120 bpm, then 2 s of tail
+function beat(setup) {
+  const e = new Engine(SR, 1), step = SR * 60 / 120 / 4, n = step * 32 + SR * 2;
+  setup && setup(e);
   const L = new Float32Array(n), R = new Float32Array(n);
   const pat = [[0, [0, 6, 10, 16, 22, 26]], [3, [4, 12, 20, 28]], [5, [0, 2, 4, 6, 8, 10, 12, 16, 18, 20, 22, 24, 26, 28]],
     [1, [14, 30]], [2, [11, 27]], [4, [0]]];
@@ -45,10 +46,22 @@ for (let v = 0; v < 6; v++) {
   let pos = 0;
   for (const [t, v, alt] of ev) { e.process(L, R, t - pos, pos); pos = t; e.trigger(v, 0.85 + 0.15 * ((t / step) % 4 === 0), alt || 0); }
   e.process(L, R, n - pos, pos);
-  const s = stats(L);
-  console.log(`beat         peak ${s.pk.toFixed(3)} rms ${s.rms.toFixed(4)}`);
-  if (s.pk >= 1) { fail++; console.log('FAIL beat clips'); }
-  if (outDir) writeWav(`${outDir}/beat.wav`, L, R, SR);
+  return { L, R, e };
+}
+const fxSetup = (e) => {
+  const sp = (v, k, x) => (e.params[v * NP + P[k]] = x), sm = (k, x) => (e.master[M[k]] = x);
+  sp(3, 'sEcho', 0.4); sp(3, 'sRev', 0.5); sp(2, 'sEcho', 0.5); sp(1, 'sRev', 0.4); sp(4, 'sRev', 0.3);
+  sp(2, 'sRing', 0.5); sp(1, 'sDist', 0.5);
+  sm('dkAmt', 0.6); sm('mdMix', 0.4); sm('mdDrive', 0.4); sm('cThr', -18);
+  sm('xa01', 0.3); sm('xa53', 0.4); sm('xt53', 1);
+};
+for (const [name, setup] of [['beat', null], ['beat-fx', fxSetup]]) {
+  const { L, R, e } = beat(setup);
+  const s = stats(L), tail = stats(L.subarray(L.length - 4800));
+  const ok = s.pk < 0.95 && s.pk > 0.1 && L.every(Number.isFinite) && R.every(Number.isFinite) && tail.pk < 0.2;
+  if (!ok) fail++;
+  console.log(`${ok ? 'ok  ' : 'FAIL'} ${name.padEnd(12)} peak ${s.pk.toFixed(3)} rms ${s.rms.toFixed(4)} tail ${tail.pk.toFixed(4)} gr ${e.gr.toFixed(1)}dB`);
+  if (outDir) writeWav(`${outDir}/${name}.wav`, L, R, SR);
 }
 // speed
 {

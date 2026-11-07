@@ -201,7 +201,15 @@ function buildPrst() {
   file.hidden = true;
   file.addEventListener('change', () => importPresets(file.files));
   imp.append(file);
-  row2.append(search, favB, imp, btn('export', 'sm', exportPresets));
+  const delAll = btn('delete all mine', 'sm', () => {
+    const n = lsGet().length;
+    if (!n) return toast('no user presets to delete');
+    if (!confirm(`delete all ${n} of your presets? built-in ones stay. this can't be undone, so export first if you want a copy.`)) return;
+    lsSet([]);
+    redraw('preset');
+    toast(`deleted ${n} preset${n === 1 ? '' : 's'}`);
+  });
+  row2.append(search, favB, imp, btn('export', 'sm', exportPresets), delAll);
   const list = h('div');
   list.style.cssText = 'flex:1;min-height:0;overflow:auto;border-top:2px solid var(--ink);padding-top:6px';
   search.addEventListener('input', draw);

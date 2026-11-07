@@ -62,7 +62,7 @@ function buildXmod() {
   return page;
 }
 function buildXfeed() {
-  const s = sect('crossfeed · base operator of each drum modulates the others');
+  const s = sect('xmod · base operator of each drum modulates the others');
   s.head.append(h('span', 'sp'),
     btn('randomise', 'sm', () => { pushUndo(); rndXfeed(RND.crossfeed.depth); sendAll(); }),
     btn('clear', 'sm', () => { pushUndo(); for (let a = 0; a < 6; a++) for (let b = 0; b < 6; b++) setG(NV_ + M[`xa${a}${b}`], 0); }));

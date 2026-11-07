@@ -78,12 +78,26 @@ function presetName(seed) {
   const r = new Rng((seed * 2654435761 + 7) >>> 0);
   const pick = (list) => list[r.next() % list.length];
   const word = () => pick(NAME_WORDS[pick(NAME_THEMES)]);
+  const alien = () => alienName(r.next()).split(' ')[r.next() % 2];
+  // an alien word blended with a real one (either way round)
+  const alienMix = () => {
+    const real = pick(NAME_WORDS[pick(NAME_THEMES)].filter((w) => !w.includes(' ') && w.length >= 5));
+    const a = alien();
+    let f, b;
+    if (r.next() % 2) { f = frontOf(a); b = backOf(real, r); } else { f = frontOf(real); b = backOf(a, r); }
+    if (isV(f[f.length - 1]) && isV(b[0])) b = b.slice(1);
+    return (f + b).length >= 4 ? f + b : a;
+  };
   const k = r.next() % 20;
   let name;
-  if (k < 9) name = portmanteau(r) + ' ' + word(); // a made-up blend and a real term
-  else if (k < 12) name = portmanteau(r) + ' ' + portmanteau(r);
-  else if (k < 17) name = word() + ' ' + word(); // two themed words, often from different themes
-  else name = word() + ' ' + alienName(seed).split(' ')[0];
+  if (k < 4) name = alienMix() + ' ' + word(); // alien/real blend and a real term
+  else if (k < 7) name = portmanteau(r) + ' ' + alien();
+  else if (k < 10) name = alien() + ' ' + alienMix();
+  else if (k < 13) name = word() + ' ' + alien();
+  else if (k < 15) name = alienName(r.next()); // fully alien
+  else if (k < 17) name = portmanteau(r) + ' ' + word();
+  else if (k < 19) name = word() + ' ' + word();
+  else name = portmanteau(r) + ' ' + portmanteau(r);
   if (r.next() % 2) return name;
   // half the time: chop at least one word into syllables and scramble it with others
   const parts = name.split(' ');

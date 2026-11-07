@@ -18,7 +18,7 @@ const RND = {
   kit: { label: 'kit', depth: 1, chance: { tone: 1, shape: 1, noise: 1, filter: 0.7, mod: 0.3 } },
   alter: { label: 'alter', depth: 0.3, chance: { tone: 1, shape: 1, noise: 1, filter: 1, mod: 1 } },
   pattern: { label: 'pattern', depth: 1, chance: { genre: 0.2, energy: 1, fills: 1 } },
-  crossfeed: { label: 'crossfeed', depth: 0.6, chance: {} },
+  crossfeed: { label: 'xmod', depth: 0.8, chance: {} },
   fx: { label: 'random fx', depth: 1, chance: { echo: 1, reverb: 1, sends: 1, master: 0.3 } },
   alterfx: { label: 'alter fx', depth: 0.3, chance: { echo: 1, reverb: 1, sends: 1, master: 1 } },
   motion: { label: 'motion', depth: 0.6, chance: {} },

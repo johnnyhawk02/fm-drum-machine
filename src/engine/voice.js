@@ -63,7 +63,7 @@ export class Voice {
     this.mono = 0;
     this.meter = 0;
     // external modulation (crossfeed), set by engine each sample
-    this.xFm = 0;
+    this.xPm = 0;
     this.xCut = 0;
     this.xRing = 0;
   }
@@ -275,7 +275,7 @@ export class Voice {
     const car = ALG_CAR[algo];
     const fmEnd = p[b + P.fmEnd];
     const out = this.out;
-    const idx = this.fmIdx + this.xFm;
+    const idx = this.fmIdx;
     let body = 0;
     let ncar = 0;
     for (let o = 3; o >= 0; o--) {
@@ -285,6 +285,8 @@ export class Voice {
         for (let j = o + 1; j < 4; j++) if ((mask >> j) & 1) m += out[j];
         m *= idx * this.aa[o];
       }
+      // crossfeed: other voices' base oscillators phase-modulate the base operator A
+      if (o === 0) m += this.xPm;
       if (o === 3) {
         // feedback follows D's own envelope, so the grit fades with the attack;
         // negative feedback uses the squared signal (asymmetric, rougher)

@@ -160,7 +160,7 @@ h3 { margin: 0; font-weight: normal; font-size: 22px; letter-spacing: .14em; tex
 /* XY pad / crossfeed grid */
 .xf { display: grid; grid-template-columns: 50px repeat(6, 1fr); gap: 4px; }
 .xf .h { font-size: 16px; text-align: center; text-transform: uppercase; }
-.xf .cell { height: 58px; border: 1.5px solid var(--ink); border-radius: 3px; position: relative; cursor: ns-resize;
+.xf .cell { height: 80px; border: 1.5px solid var(--ink); border-radius: 3px; position: relative; cursor: ns-resize;
   background-image: radial-gradient(var(--mid) 1px, transparent 1.2px); background-size: 6px 6px; }
 .xf .cell b { position: absolute; left: 0; bottom: 0; right: 0; background: var(--ink); }
 .xf .cell span { position: absolute; left: 0; right: 0; top: 2px; text-align: center; font-size: 17px; }

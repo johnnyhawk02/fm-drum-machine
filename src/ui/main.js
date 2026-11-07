@@ -23,6 +23,7 @@ const PAGES = [
   ['beat', () => buildBeat()],
   ['voice', () => (typeof buildVoice === 'function' ? buildVoice() : soon('voice'))],
   ['fx', () => (typeof buildFx === 'function' ? buildFx() : soon('fx'))],
+  ['xmod', () => buildXmod()],
   ['mix', () => (typeof buildMix === 'function' ? buildMix() : soon('mix'))],
   ['mstr', () => (typeof buildMstr === 'function' ? buildMstr() : soon('mstr'))],
   ['prst', () => (typeof buildPrst === 'function' ? buildPrst() : soon('prst'))],

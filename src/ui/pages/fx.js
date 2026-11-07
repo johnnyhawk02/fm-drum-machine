@@ -28,7 +28,6 @@ function buildFx() {
       r.append(krow(['m.rmHz', 'm.rmLvl', h('div'), h('div')]));
       return [d, sendsSect('distortion sends', 'sDist'), r, sendsSect('ring mod sends', 'sRing')];
     },
-    xfeed: () => [buildXfeed()],
   };
   const tabB = Object.keys(T).map((t) => {
     const b = btn(t, 'sm', () => show(t));
@@ -53,9 +52,17 @@ function sendsSect(title, id) {
   return s;
 }
 
-// ---- crossfeed: rows = from, columns = into. Drag: amount. Click: target (fm, filter, ring). Double-click: off.
+// ---- xmod page: the crossfeed table. Each voice's base operator (op A's sine, running all the time at
+// that drum's pitch) can modulate any other voice. Rows = from, columns = into. Drag: amount.
+// Click: target (fm = phase-modulates op A, filter = moves the cutoff, ring = ring mod). Double-click: off.
+function buildXmod() {
+  const page = h('div');
+  page.style.display = 'contents';
+  page.append(buildXfeed());
+  return page;
+}
 function buildXfeed() {
-  const s = sect('crossfeed');
+  const s = sect('crossfeed · base operator of each drum modulates the others');
   s.head.append(h('span', 'sp'),
     btn('randomise', 'sm', () => { pushUndo(); rndXfeed(RND.crossfeed.depth); sendAll(); }),
     btn('clear', 'sm', () => { pushUndo(); for (let a = 0; a < 6; a++) for (let b = 0; b < 6; b++) setG(NV_ + M[`xa${a}${b}`], 0); }));
@@ -105,6 +112,6 @@ function buildXfeed() {
       g.append(c);
     }
   }
-  s.append(g, h('div', 'dim', '<span style="font-size:16px">rows feed columns · drag: depth · click: fm / filter / ring · double-click: off</span>'));
+  s.append(g, h('div', 'dim', '<span style="font-size:17px">rows (op A of that drum, always running) feed columns · drag: depth · click: fm / filter / ring · double-click: off. you hear it while the drum in the column sounds.</span>'));
   return s;
 }

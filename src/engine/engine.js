@@ -29,6 +29,8 @@ export class Engine {
     this.duck = 0;
     this.ctr = 0;
     this.prevMono = new Float32Array(NUM_VOICES);
+    this.xPh = new Float64Array(NUM_VOICES); // free-running base oscillator of each voice (crossfeed source)
+    this.xSrc = new Float32Array(NUM_VOICES);
     this.peakL = 0;
     this.peakR = 0;
     this.gr = 0;
@@ -82,7 +84,17 @@ export class Engine {
       if (this.ctr === 0) this.control();
       this.ctr = (this.ctr + 1) % E_CTRL;
 
-      // crossfeed from previous sample's voice outputs
+      // crossfeed: each voice's base operator (op A's pitch, pitch envelope included while it plays)
+      // runs all the time as a sine, so the 6x6 table works even when the source drum is silent
+      const xs = this.xSrc;
+      for (let v = 0; v < NUM_VOICES; v++) {
+        const vo = vs[v];
+        const b = v * NP;
+        let ph = this.xPh[v] + (vo.active ? vo.inc[0] : (p[b + P.tune] * p[b + P.rA]) / this.sr);
+        ph -= Math.floor(ph);
+        this.xPh[v] = ph;
+        xs[v] = sinc(ph);
+      }
       for (let d = 0; d < NUM_VOICES; d++) {
         let xf = 0;
         let xc = 0;
@@ -92,14 +104,14 @@ export class Engine {
           const a = m[k];
           if (a > 0) {
             const t = m[k + 1] | 0;
-            const x = pm[src] * a;
+            const x = xs[src] * a;
             if (t === 0) xf += x;
             else if (t === 1) xc += x;
             else xr += x;
           }
         }
         const vo = vs[d];
-        vo.xFm = xf * 2;
+        vo.xPm = xf * 1.5;
         vo.xCut = xc * 2;
         vo.xRing = xr * 2;
       }

@@ -168,8 +168,7 @@ function buildPrst() {
   top.style.alignItems = 'center';
   const cur = h('div', '', '');
   cur.style.cssText = 'font-size:24px;flex:2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
-  // TEMPORARY: quick content generation, randomise everything right next to save
-  top.append(cur, btn('rnd everything', '', () => runRandom('everything')), btn('save new', '', saveNew), btn('save over', '', saveOver));
+  top.append(cur, btn('save new', '', saveNew), btn('save over', '', saveOver));
   // the name the next save will get, with a dice to roll another
   const nameRow = h('div', 'row');
   nameRow.style.alignItems = 'center';

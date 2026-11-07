@@ -10,8 +10,10 @@ self.addEventListener('activate', (e) => {
 // network first for the page (so updates arrive), cache fallback offline
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  // the page itself always comes fresh from the network when online (never the browser's HTTP cache)
+  const page = e.request.mode === 'navigate' || /\/(index\.html)?$/.test(new URL(e.request.url).pathname);
   e.respondWith(
-    fetch(e.request).then((r) => {
+    fetch(e.request, page ? { cache: 'no-store' } : {}).then((r) => {
       const copy = r.clone();
       if (r.ok && new URL(e.request.url).origin === location.origin) caches.open(VER).then((c) => c.put(e.request, copy));
       return r;

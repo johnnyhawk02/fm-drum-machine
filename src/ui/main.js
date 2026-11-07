@@ -122,6 +122,7 @@ function openOptions() {
       sendAll();
       try { localStorage.setItem('fmdm.autoLevel', v ? '1' : '0'); } catch {}
     }),
+    h('div', 'dim', 'version ' + APP_VER),
     h('div', '', 'screen colour'),
     sw,
     picker,
@@ -167,7 +168,16 @@ function boot() {
   if (typeof initMidi === 'function') initMidi();
   requestAnimationFrame(frame);
   document.addEventListener('contextmenu', (e) => e.preventDefault());
-  if ('serviceWorker' in navigator && /^(https:|http:\/\/localhost)/.test(location.href)) navigator.serviceWorker.register('sw.js').catch(() => {});
+  // update at startup: check for a new service worker straight away (bypassing the HTTP cache), and when
+  // a new one takes over, reload once so the new version is what runs
+  if ('serviceWorker' in navigator && /^(https:|http:\/\/localhost)/.test(location.href)) {
+    const hadSw = !!navigator.serviceWorker.controller;
+    let reloaded = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (hadSw && !reloaded) { reloaded = true; location.reload(); }
+    });
+    navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((r) => r.update()).catch(() => {});
+  }
   window.__fmdm = { S, applyPreset, BUILTIN_PRESETS, togglePlay, showPage, runRandom, measureHit, NP, P };
 }
 boot();

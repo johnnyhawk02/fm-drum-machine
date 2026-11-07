@@ -2,6 +2,7 @@
 //   node build.mjs
 // The engine and sequencer modules are stripped of import/export and joined into one classic script,
 // used both by the page and (as text) by the AudioWorklet.
+import { execSync } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, copyFileSync } from 'node:fs';
 
 const read = (f) => readFileSync(new URL(f, import.meta.url), 'utf8');
@@ -23,8 +24,12 @@ const presetDir = new URL('presets/', import.meta.url);
 const presets = existsSync(presetDir) ? readdirSync(presetDir).filter((f) => f.endsWith('.json')).sort()
   .flatMap((f) => JSON.parse(readFileSync(new URL(f, presetDir), 'utf8')).presets || []) : [];
 
+// build version: date + commit, shown in options; the service worker's cache name changes with it
+let commit = '';
+try { commit = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch {}
+const ver = new Date().toISOString().slice(0, 16).replace('T', ' ') + (commit ? ' ' + commit : '');
 const esc = (s) => s.replace(/<\/script/gi, '<\\/script');
-const app = `(() => {\n'use strict';\n${engine}\nconst WORKLET_SRC = ${JSON.stringify(worklet)};\nconst BUILTIN_PRESETS = ${JSON.stringify(presets)};\n${ui}\n})();`;
+const app = `(() => {\n'use strict';\n${engine}\nconst WORKLET_SRC = ${JSON.stringify(worklet)};\nconst BUILTIN_PRESETS = ${JSON.stringify(presets)};\nconst APP_VER = ${JSON.stringify(ver)};\n${ui}\n})();`;
 const font = readFileSync(new URL('src/static/vt323-latin.woff2', import.meta.url)).toString('base64');
 const fontCss = `@font-face { font-family: 'VT323'; font-style: normal; font-weight: 400; font-display: block; src: url(data:font/woff2;base64,${font}) format('woff2'); }\n`;
 const logo = readFileSync(new URL('src/static/logo.png', import.meta.url)).toString('base64');
@@ -35,9 +40,9 @@ const page = read('src/index.src.html')
 mkdirSync(new URL('dist/', import.meta.url), { recursive: true });
 writeFileSync(new URL('dist/index.html', import.meta.url), page);
 for (const f of ['manifest.webmanifest', 'icon.svg', 'icon-512.png']) copyFileSync(new URL(`src/static/${f}`, import.meta.url), new URL(`dist/${f}`, import.meta.url));
-// the service worker's cache name changes with every build, so a new page replaces the old one
-const ver = Date.now().toString(36);
 writeFileSync(new URL('dist/sw.js', import.meta.url), read('src/static/sw.js').replace('@VER@', ver));
+// Cloudflare Pages: always revalidate the page and the service worker, so updates show at startup
+writeFileSync(new URL('dist/_headers', import.meta.url), '/\n  Cache-Control: no-cache\n/index.html\n  Cache-Control: no-cache\n/sw.js\n  Cache-Control: no-cache\n');
 // help page: the same help as the ? dialog, in the LCD look
 const HELP = new Function(`return ${/const HELP = (\[[\s\S]*?\n\]);/.exec(read('src/ui/keys.js'))[1]}`)();
 writeFileSync(new URL('dist/help.html', import.meta.url), `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>fm dm help</title>

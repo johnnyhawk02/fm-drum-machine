@@ -26,12 +26,42 @@ const NAME_WORDS = {
 };
 const NAME_THEMES = Object.keys(NAME_WORDS);
 
+// portmanteau: the front of one word (up to and just past its first vowel sound) joined to the back of a
+// word from another list (from a vowel in its second half): nebula + tiramisu -> nebamisu
+const isV = (c) => 'aeiouyéèêâûô'.includes(c);
+function frontOf(w) {
+  let i = 0;
+  while (i < w.length && !isV(w[i])) i++; // leading consonants
+  while (i < w.length && isV(w[i])) i++; // first vowel sound
+  if (i < w.length && !isV(w[i])) i++; // one consonant to close it
+  if (i < 3 && w.length > 4) i = Math.min(w.length - 1, 3);
+  return w.slice(0, i);
+}
+function backOf(w, r) {
+  const starts = [];
+  for (let i = Math.max(1, Math.floor(w.length / 3)); i < w.length - 1; i++) if (isV(w[i]) && !isV(w[i - 1])) starts.push(i);
+  return starts.length ? w.slice(starts[r.next() % starts.length]) : w.slice(Math.floor(w.length / 2));
+}
+function portmanteau(r) {
+  const single = (t) => NAME_WORDS[t].filter((w) => !w.includes(' ') && w.length >= 5);
+  const t1 = NAME_THEMES[r.next() % NAME_THEMES.length];
+  let t2 = NAME_THEMES[r.next() % NAME_THEMES.length];
+  if (t2 === t1) t2 = NAME_THEMES[(NAME_THEMES.indexOf(t1) + 1) % NAME_THEMES.length];
+  const a = single(t1), b = single(t2);
+  let f = frontOf(a[r.next() % a.length]);
+  let k = backOf(b[r.next() % b.length], r);
+  if (isV(f[f.length - 1]) && isV(k[0])) k = k.slice(1);
+  if (f[f.length - 1] === k[0]) k = k.slice(1);
+  return f + k;
+}
+
 function presetName(seed) {
   const r = new Rng((seed * 2654435761 + 7) >>> 0);
   const pick = (list) => list[r.next() % list.length];
   const word = () => pick(NAME_WORDS[pick(NAME_THEMES)]);
-  const k = r.next() % 10;
-  if (k < 6) return word() + ' ' + word(); // two themed words, often from different themes
-  if (k < 9) return word() + ' ' + alienName(seed).split(' ')[0];
-  return alienName(seed);
+  const k = r.next() % 20;
+  if (k < 9) return portmanteau(r) + ' ' + word(); // a made-up blend and a real term
+  if (k < 12) return portmanteau(r) + ' ' + portmanteau(r);
+  if (k < 18) return word() + ' ' + word(); // two themed words, often from different themes
+  return word() + ' ' + alienName(seed).split(' ')[0];
 }

@@ -56,7 +56,7 @@ header .play.on, #rec.on { background: var(--spot); border-color: var(--spot); c
 @keyframes blink { 50% { opacity: .4; } }
 
 /* ---- main areas */
-main { display: grid; grid-template-columns: 440px 340px minmax(0, 1fr); gap: 0; padding: 12px 18px 16px; min-height: 0; position: relative; z-index: 1; }
+main { display: grid; grid-template-columns: 440px 340px minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); gap: 0; padding: 12px 18px 16px; min-height: 0; position: relative; z-index: 1; }
 .col { min-height: 0; display: flex; flex-direction: column; }
 .box { border: 2px solid var(--ink); border-radius: 12px; padding: 10px 12px; }
 h3 { margin: 0; font-weight: normal; font-size: 22px; letter-spacing: .14em; text-transform: uppercase; }
@@ -89,7 +89,12 @@ h3 { margin: 0; font-weight: normal; font-size: 22px; letter-spacing: .14em; tex
 #perf { padding: 10px 8px 6px; }
 #perf .kgrid { grid-template-columns: repeat(4, 1fr); gap: 3px 6px; }
 #perf h3 { display: flex; justify-content: space-between; align-items: center; padding: 0 6px 4px; font-size: 20px; }
-#seq { margin-top: 10px; flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 6px; }
+/* the knob sequencer runs under both the perf knobs and the mixer; the pages take the full height */
+#right { grid-column: 3; grid-row: 1 / span 2; }
+#seqwrap { grid-column: 1 / span 2; grid-row: 2; margin-top: 12px; min-height: 0; display: flex; }
+#seq { flex: 1; min-height: 0; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: auto minmax(0, 1fr) auto; gap: 6px 16px; }
+#seq .top, #seq .steps { grid-column: 1 / span 2; }
+#seq .ctl, #seq .shapes { align-self: center; }
 #seq .top { display: flex; align-items: center; gap: 6px; }
 #seq .top .name { flex: 1; font-size: 20px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; }
 #seq .steps { flex: 1; min-height: 60px; display: grid; grid-template-columns: repeat(16, 1fr); gap: 3px; position: relative; cursor: crosshair;

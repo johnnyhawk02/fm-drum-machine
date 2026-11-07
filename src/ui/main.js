@@ -1,13 +1,18 @@
 // fm dm — page shell: header, pages, stage scaling, frame loop, transport.
 
 let stageScale = 1;
+let stageW = 1440;
+let stageH = 900;
+// The page is laid out in design pixels (1440x900 at scale 1). It scales with the window, and the
+// spare width or height goes to the layout (the right-hand pages widen, the meters and the
+// sequencer strip grow taller) instead of black bars, up to 2200x1300 design pixels.
 function fitStage() {
   const st = $('stage');
   stageScale = Math.min(innerWidth / 1440, innerHeight / 900);
-  st.style.transform = `scale(${stageScale}) translate(-50%, -50%)`;
-  st.style.transformOrigin = '0 0';
-  st.style.left = '50%';
-  st.style.top = '50%';
+  stageW = Math.min(2200, innerWidth / stageScale);
+  stageH = Math.min(1300, innerHeight / stageScale);
+  st.style.width = stageW + 'px';
+  st.style.height = stageH + 'px';
   st.style.transform = `translate(-50%, -50%) scale(${stageScale})`;
   st.style.transformOrigin = '50% 50%';
 }

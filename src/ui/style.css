@@ -14,7 +14,7 @@ body { font-family: var(--font); color: var(--ink); -webkit-user-select: none; u
 button, input, select { font: inherit; color: inherit; }
 [hidden] { display: none !important; }
 
-#stage { position: absolute; left: 50%; top: 50%; width: 1440px; height: 900px; transform-origin: 0 0;
+#stage { position: absolute; left: 50%; top: 50%; width: 1440px; height: 900px; transform-origin: 50% 50%; transform: translate(-50%, -50%);
   padding: 10px; background: var(--bezel); }
 #lcd { position: relative; width: 100%; height: 100%; border-radius: 10px; overflow: hidden;
   background: radial-gradient(ellipse at 50% 40%, var(--lcd-hi), var(--lcd) 70%, #98a67d);

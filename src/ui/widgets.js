@@ -278,8 +278,8 @@ function menu(items, x, y) {
   $('lcd').append(mn);
   const w = mn.offsetWidth;
   const hh = mn.offsetHeight;
-  if (parseFloat(mn.style.left) + w > 1410) mn.style.left = 1410 - w + 'px';
-  if (parseFloat(mn.style.top) + hh > 870) mn.style.top = 870 - hh + 'px';
+  if (parseFloat(mn.style.left) + w > stageW - 30) mn.style.left = stageW - 30 - w + 'px';
+  if (parseFloat(mn.style.top) + hh > stageH - 30) mn.style.top = stageH - 30 - hh + 'px';
   setTimeout(() => addEventListener('pointerdown', closeMenuOut, { once: true }), 0);
 }
 function closeMenuOut(e) {

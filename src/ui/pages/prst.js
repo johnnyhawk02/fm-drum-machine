@@ -154,7 +154,8 @@ function buildPrst() {
   top.style.alignItems = 'center';
   const cur = h('div', '', '');
   cur.style.cssText = 'font-size:24px;flex:2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
-  top.append(cur, btn('save new', '', saveNew), btn('save over', '', saveOver));
+  // TEMPORARY: quick content generation, randomise everything right next to save
+  top.append(cur, btn('rnd everything', '', () => runRandom('everything')), btn('save new', '', saveNew), btn('save over', '', saveOver));
   const row2 = h('div', 'row');
   row2.style.alignItems = 'center';
   const search = h('input');

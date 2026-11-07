@@ -97,30 +97,26 @@ function openOptions() {
   body.style.display = 'grid';
   body.style.gap = '10px';
   const sw = h('div', 'swatches');
-  const pick = document.createElement('input');
-  pick.type = 'color';
-  pick.title = 'any colour';
+  const picker = colourPicker(lcdColour(), (c) => { setLcdColour(c); mark(); });
   const mark = () => {
     const c = lcdColour().toLowerCase();
     sw.querySelectorAll('.swatch').forEach((b) => b.classList.toggle('on', b.dataset.c === c));
-    pick.value = c;
   };
   for (const [name, c] of LCD_COLOURS) {
     const b = h('button', 'swatch');
     b.title = name;
     b.dataset.c = c;
     b.style.background = c;
-    b.onclick = () => { setLcdColour(c); mark(); };
+    b.onclick = () => { setLcdColour(c); picker.setColour(c); mark(); };
     sw.append(b);
   }
-  pick.oninput = () => { setLcdColour(pick.value); mark(); };
-  sw.append(pick);
   mark();
   body.append(
     chk('randomise on next bar', () => S.opts.nextBar, (v) => (S.opts.nextBar = v)),
     chk('wild ranges (not drum-safe)', () => S.opts.wild, (v) => (S.opts.wild = v)),
     h('div', '', 'screen colour'),
     sw,
+    picker,
   );
   dialog('options', body);
 }

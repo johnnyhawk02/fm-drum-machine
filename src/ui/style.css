@@ -182,4 +182,28 @@ input[type=text], input[type=search] { background: transparent; border: 2px soli
 .swatches { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .swatch { width: 34px; height: 34px; border: 2px solid var(--ink); border-radius: 4px; cursor: pointer; padding: 0; }
 .swatch.on { outline: 3px solid var(--ink); outline-offset: 2px; }
-.swatches input[type=color] { width: 44px; height: 34px; border: 2px solid var(--ink); border-radius: 4px; background: transparent; padding: 0; cursor: pointer; }
+
+/* ---- colour picker */
+.cp { display: flex; gap: 14px; align-items: stretch; }
+.cp-sq { position: relative; width: 240px; height: 200px; border: 2px solid var(--ink); border-radius: 4px; cursor: crosshair; touch-action: none; overflow: hidden; }
+.cp-sq .cp-w, .cp-sq .cp-b { position: absolute; inset: 0; pointer-events: none; }
+.cp-sq .cp-w { background: linear-gradient(90deg, #fff, rgba(255,255,255,0)); }
+.cp-sq .cp-b { background: linear-gradient(0deg, #000, rgba(0,0,0,0)); }
+.cp-sq i { position: absolute; width: 12px; height: 12px; margin: -8px 0 0 -8px; border: 2px solid #fff; border-radius: 50%; box-shadow: 0 0 0 1.5px #000; pointer-events: none; }
+.cp-hue { position: relative; width: 26px; height: 200px; border: 2px solid var(--ink); border-radius: 4px; cursor: ns-resize; touch-action: none;
+  background: linear-gradient(0deg, #f00, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00); }
+.cp-hue i { position: absolute; left: -6px; right: -6px; height: 4px; margin-top: -3px; border: 1.5px solid var(--ink); background: var(--lcd); pointer-events: none; }
+.cp-side { display: flex; flex-direction: column; gap: 8px; font-size: 20px; }
+.cp-prev { display: grid; grid-template-columns: 34px 54px; grid-template-rows: 26px 26px; gap: 0 8px; align-items: center; }
+.cp-prev div { border: 2px solid var(--ink); height: 26px; grid-column: 2; }
+.cp-prev > :nth-child(1), .cp-prev > :nth-child(2) { grid-row: 1; }
+.cp-prev > :nth-child(3), .cp-prev > :nth-child(4) { grid-row: 2; }
+.cp-prev div:first-of-type { border-bottom: none; border-radius: 4px 4px 0 0; }
+.cp-prev div:last-of-type { border-top: none; border-radius: 0 0 4px 4px; cursor: pointer; }
+.cp-prev span { grid-column: 1; }
+.cp-fields { display: grid; grid-template-rows: repeat(3, auto); grid-auto-flow: column; gap: 4px 14px; }
+.cp-side label { display: flex; gap: 6px; align-items: center; }
+.cp-side label > span:first-child { width: 14px; }
+.cp-side input { width: 52px; font: inherit; font-size: 20px; color: var(--ink); background: transparent; border: 1.5px solid var(--ink); border-radius: 3px; padding: 0 4px; }
+.cp-side input.cp-hex { width: 90px; }
+.cp-side input::-webkit-inner-spin-button { display: none; }

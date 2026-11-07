@@ -173,6 +173,18 @@ function loadRandomFactory() {
   applyPreset(BUILTIN_PRESETS[Math.floor(Math.random() * BUILTIN_PRESETS.length)]);
 }
 let prstSearch = null;
+let prstList = null;
+function prstStep(dir) {
+  if (!prstList) return;
+  const rows = [...prstList.querySelectorAll('[data-name]')];
+  if (!rows.length) return;
+  const i = rows.findIndex((r) => r.dataset.name === curPreset);
+  const r = rows[i < 0 ? (dir > 0 ? 0 : rows.length - 1) : clamp(i + dir, 0, rows.length - 1)];
+  if (r.dataset.name === curPreset) return;
+  r.click();
+  const nr = prstList.querySelector(`[data-name="${CSS.escape(r.dataset.name)}"]`);
+  if (nr) nr.scrollIntoView({ block: 'nearest' });
+}
 function buildPrst() {
   const page = h('div');
   page.style.display = 'contents';
@@ -228,6 +240,7 @@ function buildPrst() {
   row2.append(search, favB, imp, btn('export', 'sm', exportPresets), delAll);
   const list = h('div');
   list.style.cssText = 'flex:1;min-height:0;overflow:auto;border-top:2px solid var(--ink);padding-top:6px';
+  prstList = list;
   search.addEventListener('input', draw);
   search.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {

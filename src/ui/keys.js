@@ -52,6 +52,11 @@ function bindKeys() {
     if (i >= 0) return tog('eMute' + i);
     i = VERB_KEYS.indexOf(k);
     if (i >= 0) return tog('rMute' + i);
+    // presets page: up/down loads the previous/next preset in the list
+    if (curPage === 'prst' && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
+      e.preventDefault();
+      return prstStep(e.key === 'ArrowDown' ? 1 : -1);
+    }
     if (e.key.startsWith('Arrow') && S.sel) {
       e.preventDefault();
       const m = model(S.sel);

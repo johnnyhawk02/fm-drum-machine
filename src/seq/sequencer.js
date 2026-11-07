@@ -59,6 +59,8 @@ export class Sequencer {
     this.lSpeed = new Uint8Array(NUM_LANES); // index into SPEEDS
     this.lDepth = new Float32Array(NUM_LANES).fill(0.5);
     this.lGroove = new Uint8Array(NUM_LANES).fill(1);
+    this.lMode = new Uint8Array(NUM_LANES); // 0 slider steps, 1 envelope per step
+    this.lShape = new Uint8Array(NUM_LANES * MAX_STEPS); // envelope shape per step
     this.lCur = new Float32Array(NUM_LANES); // smoothed step value -1..1
     this.lPos = new Int16Array(NUM_LANES); // current lane step
     this.lOut = new Float32Array(NUM_LANES); // applied offset (norm), for UI arcs
@@ -197,10 +199,18 @@ export class Sequencer {
       if (g < 0) continue;
       const dur = this.speedN[this.lSpeed[l]];
       const len = this.lLen[l] || 1;
-      const p16 = this.lGroove[l] ? Math.max(0, this.stepIdx - 1) : straight;
-      const pos = Math.floor(p16 / dur) % len;
+      let pos, tgt;
+      if (this.lMode[l]) {
+        // envelope: the step's shape runs over the step's length, scaled by its depth
+        const f = straight / dur, k = Math.floor(f);
+        pos = k % len;
+        tgt = this.lSteps[l * MAX_STEPS + pos] * envShape(this.lShape[l * MAX_STEPS + pos], f - k);
+      } else {
+        const p16 = this.lGroove[l] ? Math.max(0, this.stepIdx - 1) : straight;
+        pos = Math.floor(p16 / dur) % len;
+        tgt = this.lSteps[l * MAX_STEPS + pos];
+      }
       this.lPos[l] = pos;
-      const tgt = this.lSteps[l * MAX_STEPS + pos];
       const slew = this.lSlew[l];
       if (slew <= 0.001) this.lCur[l] = tgt;
       else {

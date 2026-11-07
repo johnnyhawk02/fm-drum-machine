@@ -47,6 +47,8 @@ class ElixirProcessor extends AudioWorkletProcessor {
         s.lSpeed[l] = m.speed;
         s.lDepth[l] = m.depth;
         s.lGroove[l] = m.groove ? 1 : 0;
+        s.lMode[l] = m.mode || 0;
+        if (m.shapes) s.lShape.set(m.shapes, l * MAX_STEPS);
         break;
       }
       case 'lanesOff':

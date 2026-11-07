@@ -21,7 +21,7 @@ function lsSet(list) {
 const r4 = (x) => +x.toPrecision(5);
 function capture(name) {
   const lanes = [];
-  S.lanes.forEach((ln) => ln && lanes.push({ key: gKey(ln.g), steps: Array.from(ln.steps.slice(0, ln.len), r4), len: ln.len, slew: r4(ln.slew), speed: ln.speed, depth: r4(ln.depth), groove: ln.groove }));
+  S.lanes.forEach((ln) => ln && lanes.push({ key: gKey(ln.g), steps: Array.from(ln.steps.slice(0, ln.len), r4), len: ln.len, slew: r4(ln.slew), speed: ln.speed, depth: r4(ln.depth), groove: ln.groove, ...(ln.mode ? { mode: 1, shapes: Array.from(ln.shapes.slice(0, ln.len)) } : {}) }));
   const voices = [];
   for (let v = 0; v < 6; v++) {
     const o = {};
@@ -59,7 +59,9 @@ function applyPreset(pr) {
     if (g < 0) return;
     const steps = new Float32Array(MAX_STEPS);
     steps.set(ln.steps.slice(0, MAX_STEPS));
-    S.lanes[l] = { g, steps, len: ln.len, slew: ln.slew, speed: ln.speed, depth: ln.depth, groove: ln.groove };
+    const shapes = new Uint8Array(MAX_STEPS);
+    if (ln.shapes) shapes.set(ln.shapes.slice(0, MAX_STEPS));
+    S.lanes[l] = { g, steps, shapes, mode: ln.mode || 0, len: ln.len, slew: ln.slew, speed: ln.speed, depth: ln.depth, groove: ln.groove };
   });
   if (pr.gen) S.gen = { ...S.gen, ...pr.gen, density: pr.gen.density ? pr.gen.density.slice() : S.gen.density };
   if (pr.perf) pr.perf.forEach((k, i) => k !== S.perf[i] && setPerf(i, k));

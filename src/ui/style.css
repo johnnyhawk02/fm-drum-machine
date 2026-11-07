@@ -102,6 +102,11 @@ h3 { margin: 0; font-weight: normal; font-size: 22px; letter-spacing: .14em; tex
 #seq .steps .st { position: relative; background: repeating-linear-gradient(to top, var(--dim) 0 2px, transparent 2px 5px); }
 #seq .steps .st i { position: absolute; left: 0; right: 0; background: var(--ink); }
 #seq .steps .st.off { opacity: .25; }
+#seq .steps .st svg { position: absolute; inset: 0; width: 100%; height: 100%; display: none; overflow: visible; }
+#seq .steps .st path { fill: none; stroke: var(--ink); stroke-width: 3; vector-effect: non-scaling-stroke; }
+#seq .steps .st.env svg { display: block; }
+#seq .steps .st.env i { display: none; }
+#seq .envs .b.on { background: var(--spot); border-color: var(--spot); color: var(--lcd); }
 #seq .steps .st.cur { outline: 2px solid var(--spot); outline-offset: 1px; }
 #seq .steps .zero { position: absolute; left: 0; right: 0; top: 50%; border-top: 1px dotted var(--mid); pointer-events: none; }
 #seq .ctl { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }

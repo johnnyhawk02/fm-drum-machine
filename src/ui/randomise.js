@@ -61,9 +61,12 @@ function rndMotion(depth) {
     ln.motion = true;
     ln.len = rr() < 0.5 ? 16 : 8;
     ln.steps.fill(0);
-    laneRandom(LANE_RANDOMS[Math.floor(rr() * LANE_RANDOMS.length)], ln.len, ln.steps, (rr() * 1e9) | 0);
+    // a third of them are envelope sequences: a shape fired on each step
+    ln.mode = rr() < 0.33 ? 1 : 0;
+    if (ln.mode) envRandom(ln.len, ln.steps, ln.shapes, (rr() * 1e9) | 0);
+    else laneRandom(LANE_RANDOMS[Math.floor(rr() * LANE_RANDOMS.length)], ln.len, ln.steps, (rr() * 1e9) | 0);
     ln.speed = speeds[k];
-    ln.slew = 0.1 + rr() * 0.45;
+    ln.slew = ln.mode ? rr() * 0.1 : 0.1 + rr() * 0.45;
     ln.depth = (g >= NV_ ? 1 : rr() < 0.5 ? -1 : 1) * (0.2 + rr() * 0.4) * depth / 0.6;
     ln.groove = true;
   }

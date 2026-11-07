@@ -89,6 +89,7 @@ function removeLane(g) {
   redraw('lane');
 }
 
+let envBrush = 0;
 function buildSeq() {
   const el = $('seq');
   el.innerHTML = '';
@@ -99,11 +100,21 @@ function buildSeq() {
     return b;
   });
   const clear = btn('clear', 'sm', () => { const g = selG(); if (g >= 0) removeLane(g); });
-  top.append(name, ...pages, clear);
+  // mode: slider steps, or an envelope fired on each step
+  const modeB = btn('slide', 'sm', () => {
+    const l = ensureLane();
+    if (l < 0) return;
+    const ln = S.lanes[l];
+    ln.mode = ln.mode ? 0 : 1;
+    if (ln.mode && !ln.steps.some((x, i) => i < ln.len && x)) envRandom(ln.len, ln.steps, ln.shapes, (Math.random() * 1e9) | 0);
+    sendLane(l);
+  });
+  modeB.title = 'slide: each step holds a value · env: each step fires an envelope';
+  top.append(name, modeB, ...pages, clear);
   const steps = h('div', 'steps');
   const cells = [];
   for (let i = 0; i < 16; i++) {
-    const c = h('div', 'st', '<i></i>');
+    const c = h('div', 'st', '<i></i><svg viewBox="0 0 100 100" preserveAspectRatio="none"><path/></svg>');
     cells.push(c);
     steps.append(c);
   }
@@ -118,9 +129,21 @@ function buildSeq() {
     const ln = S.lanes[l];
     const si = seqPage * 16 + i;
     ln.steps[si] = Math.abs(y) < 0.06 ? 0 : y;
+    if (ln.mode && ln.steps[si]) ln.shapes[si] = envBrush;
     if (si >= ln.len) { ln.len = si + 1; }
     sendLane(l);
   };
+  // envelope mode: right-click a step to cycle its shape
+  steps.addEventListener('contextmenu', (e) => {
+    const ln = curLane();
+    if (!ln || !ln.mode) return;
+    e.preventDefault();
+    const r = steps.getBoundingClientRect();
+    const si = seqPage * 16 + clamp(Math.floor(((e.clientX - r.left) / r.width) * 16), 0, 15);
+    ln.shapes[si] = (ln.shapes[si] + 1) % ENV_SHAPES.length;
+    envBrush = ln.shapes[si];
+    sendLane(laneOf(ln.g));
+  });
   steps.addEventListener('pointerdown', (e) => {
     if (e.button !== 0) return;
     if (selG() < 0) return;
@@ -149,7 +172,23 @@ function buildSeq() {
   const shapes = h('div', 'shapes');
   for (const s of LANE_SHAPES) shapes.append(btn(s, 'xs', () => fillLane((ln) => laneShape(s, ln.len, ln.steps))));
   for (const s of LANE_RANDOMS) shapes.append(btn(s, 'xs', () => fillLane((ln) => laneRandom(s, ln.len, ln.steps, (Math.random() * 1e9) | 0))));
-  el.append(top, steps, ctl, shapes);
+  // envelope shapes: the one picked is the brush for painted steps
+  const envs = h('div', 'shapes envs');
+  const envBs = ENV_SHAPES.map((s, k) => {
+    const b = btn(s, 'xs', () => { envBrush = k; drawSeq(); });
+    envs.append(b);
+    return b;
+  });
+  envs.append(btn('rnd', 'xs', () => fillLane((ln) => envRandom(ln.len, ln.steps, ln.shapes, (Math.random() * 1e9) | 0))));
+  el.append(top, steps, ctl, shapes, envs);
+  const envPath = (k, v) => {
+    let d = '';
+    for (let j = 0; j <= 24; j++) {
+      const t = j / 24;
+      d += (j ? 'L' : 'M') + (t * 100).toFixed(1) + ' ' + (50 - envShape(k, t) * v * 48).toFixed(1);
+    }
+    return d;
+  };
 
   function drawSeq() {
     const g = selG();
@@ -164,6 +203,9 @@ function buildSeq() {
     cells.forEach((c, i) => {
       const si = seqPage * 16 + i;
       const v = ln ? ln.steps[si] : 0;
+      const env = !!ln && !!ln.mode;
+      c.classList.toggle('env', env);
+      if (env) c.querySelector('path').setAttribute('d', v ? envPath(ln.shapes[si], v) : '');
       const bar = c.firstChild;
       bar.style.top = v >= 0 ? (50 - v * 50).toFixed(1) + '%' : '50%';
       bar.style.bottom = v >= 0 ? '50%' : (50 + v * 50).toFixed(1) + '%';
@@ -172,6 +214,12 @@ function buildSeq() {
       c.classList.toggle('cur', si === pos);
     });
     grooveB.classList.toggle('on', !!ln && ln.groove);
+    const env = !!ln && !!ln.mode;
+    modeB.textContent = env ? 'env' : 'slide';
+    modeB.classList.toggle('on', env);
+    shapes.hidden = env;
+    envs.hidden = !env;
+    envBs.forEach((b, k) => b.classList.toggle('on', k === envBrush));
   }
   el.draw = drawSeq;
   watch('sel', drawSeq);

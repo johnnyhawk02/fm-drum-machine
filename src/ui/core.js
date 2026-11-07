@@ -114,7 +114,7 @@ function laneOf(g) {
 function laneMsg(l) {
   const ln = S.lanes[l];
   if (!ln) return { t: 'lane', l, g: -1 };
-  return { t: 'lane', l, g: ln.g, steps: ln.steps.slice(), len: ln.len, slew: ln.slew, speed: ln.speed, depth: ln.depth, groove: ln.groove };
+  return { t: 'lane', l, g: ln.g, steps: ln.steps.slice(), len: ln.len, slew: ln.slew, speed: ln.speed, depth: ln.depth, groove: ln.groove, mode: ln.mode || 0, shapes: ln.shapes.slice() };
 }
 function laneMsgs() {
   return S.lanes.map((_, l) => laneMsg(l));
@@ -124,7 +124,7 @@ function newLane(g) {
   if (l >= 0) return l;
   l = S.lanes.findIndex((x) => !x);
   if (l < 0) return -1;
-  S.lanes[l] = { g, steps: new Float32Array(MAX_STEPS), len: 16, slew: 0, speed: 0, depth: 0.5, groove: true };
+  S.lanes[l] = { g, steps: new Float32Array(MAX_STEPS), shapes: new Uint8Array(MAX_STEPS), mode: 0, len: 16, slew: 0, speed: 0, depth: 0.5, groove: true };
   return l;
 }
 function sendLane(l) {
@@ -206,7 +206,7 @@ function alienName(seed) {
 const undoStack = [];
 function snapshot() {
   return { base: S.base.slice(), vel: S.vel.slice(), flag: S.flag.slice(), gen: JSON.parse(JSON.stringify(S.gen)),
-    lanes: S.lanes.map((ln) => ln && { ...ln, steps: ln.steps.slice() }) };
+    lanes: S.lanes.map((ln) => ln && { ...ln, steps: ln.steps.slice(), shapes: ln.shapes.slice() }) };
 }
 function pushUndo() {
   undoStack.push(snapshot());

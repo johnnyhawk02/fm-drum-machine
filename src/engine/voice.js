@@ -5,6 +5,7 @@ import { P, NP } from './params.js';
 import { sinc, softclip, Rng, decayCoef, Svf } from './dsp.js';
 
 const V_CTRL = 16; // control-rate block
+const FADE_N = 64; // retrigger fade, samples
 const lm = (d1, d2, d, l) => (d1 === d ? l : 0) + (d2 === d ? l : 0);
 
 // algorithms: modulator bitmask per op [A,B,C,D] and carrier mask (bit0=A)
@@ -41,6 +42,13 @@ export class Voice {
     this.lPitch = this.lFm = this.lCut = this.lLvl = this.lPan = this.lNoise = this.lRatio = 0;
     this.velAmp = 1;
     this.fmIdx = 0;
+    this.fade = 0;
+    this.pendVel = 1;
+    this.pendAlt = 0;
+    this.incBase = new Float64Array(4);
+    this.fixedMask = 0;
+    this.pSemis = 0;
+    this.burstGap = 0;
     this.reset();
     // outputs for this block (post pan)
     this.L = 0;
@@ -74,8 +82,21 @@ export class Voice {
     this.nfilt.reset();
   }
 
+  // A new hit on a sounding voice first fades the old note out over FADE_N samples (no click),
+  // then starts. A silent voice starts at once.
   trigger(p, b, vel, alt) {
+    if (this.active && (this.amp > 1e-3 || this.nEnv > 1e-3 || this.clkEnv > 1e-3)) {
+      this.fade = FADE_N;
+      this.pendVel = vel;
+      this.pendAlt = alt;
+      return;
+    }
+    this.start(p, b, vel, alt);
+  }
+
+  start(p, b, vel, alt) {
     const sr = this.sr;
+    this.fade = 0;
     this.active = true;
     this.vel = vel;
     this.t = 0;
@@ -90,7 +111,7 @@ export class Voice {
     }
     this.fbz = this.fbz2 = 0;
     // amp
-    this.ampStartLvl = this.amp;
+    this.ampStartLvl = 0;
     this.ampStage = 0;
     this.ampX = 0;
     const aAtk = p[b + P.aAtk];
@@ -116,7 +137,8 @@ export class Voice {
     this.burst = 0;
     this.burstT = 0;
     this.nBursts = Math.round(p[b + P.nBurst]);
-    this.burstN = (p[b + P.nSpace] * sr) / 1000;
+    this.burstGap = (p[b + P.nSpace] * sr) / 1000;
+    this.burstN = this.burstGap * (1 + this.rng.bi() * 0.12);
     this.burstC = decayCoef(p[b + P.nSpace] * 0.8, sr);
     if (p[b + P.lRetrig] >= 0.5) this.lfoPh = 0;
     this.ctr = 0;
@@ -155,16 +177,21 @@ export class Voice {
 
     const vel = this.vel;
     // pitch
-    const semis = this.pEnv * p[b + P.pAmt] * (1 - p[b + P.vPitch] * (1 - vel)) + this.lPitch;
-    const f0 = p[b + P.tune] * Math.pow(2, semis / 12);
+    // the pitch envelope itself runs per sample (see process); here the rest of the pitch
+    this.pSemis = p[b + P.pAmt] * (1 - p[b + P.vPitch] * (1 - vel));
+    const f0 = p[b + P.tune] * Math.pow(2, this.lPitch / 12);
     const rmul = Math.pow(2, this.lRatio * 2);
     const car = ALG_CAR[p[b + P.algo] | 0];
+    let fixed = 0;
     for (let o = 0; o < 4; o++) {
       const base = b + P.rA + o * 5;
-      let f = p[base + 4] >= 0.5 ? p[base] * 1000 : p[base] * f0;
+      const fx = p[base + 4] >= 0.5;
+      let f = fx ? p[base] * 1000 : p[base] * f0;
+      if (fx) fixed |= 1 << o;
       if (!((car >> o) & 1)) f *= rmul;
-      this.inc[o] = f / sr;
+      this.incBase[o] = f / sr;
     }
+    this.fixedMask = fixed;
     // filter
     const ft = p[b + P.fType] | 0;
     if (ft) {
@@ -185,6 +212,10 @@ export class Voice {
     }
     if (this.ctr === 0) this.control(p, b);
     this.ctr = (this.ctr + 1) % V_CTRL;
+
+    // ---- pitch envelope, per sample
+    const pm = this.pSemis !== 0 ? Math.pow(2, (this.pEnv * this.pSemis) / 12) : 1;
+    for (let o = 0; o < 4; o++) this.inc[o] = (this.fixedMask >> o) & 1 ? this.incBase[o] : this.incBase[o] * pm;
 
     // ---- operator envelopes
     const env = this.env;
@@ -285,9 +316,11 @@ export class Voice {
         this.nEnv *= this.burstC;
         this.burstT += 1;
         if (this.burstT >= this.burstN) {
+          // uneven gaps: x1, then x1.4 for later bursts, each with a little jitter (an even buzz sounds fake)
           this.burstT = 0;
           this.burst++;
-          this.nEnv = 1;
+          this.nEnv = 0.8 + 0.2 * this.rng.uni();
+          this.burstN = this.burstGap * 1.4 * (1 + this.rng.bi() * 0.12);
         }
       } else this.nEnv *= this.nC;
     }
@@ -330,6 +363,7 @@ export class Voice {
     // ---- level, pan
     const lv = p[b + P.level] * this.velAmp * (1 - Math.abs(this.lLvl) * 0.5 + this.lLvl * 0.5);
     x *= lv;
+    if (this.fade > 0) x *= this.fade / FADE_N;
     this.mono = x;
     let pan = p[b + P.pan] + this.lPan;
     pan = pan < -1 ? -1 : pan > 1 ? 1 : pan;
@@ -338,6 +372,12 @@ export class Voice {
     this.R = x * sinc(pa);
     const ax = x < 0 ? -x : x;
     this.meter = ax > this.meter ? ax : this.meter * 0.9995;
+
+    // ---- retrigger fade done: start the new note
+    if (this.fade > 0 && --this.fade === 0) {
+      this.start(p, b, this.pendVel, this.pendAlt);
+      return;
+    }
 
     // ---- envelopes advance
     this.pEnv *= this.pC;

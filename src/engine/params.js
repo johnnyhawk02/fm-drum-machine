@@ -153,7 +153,7 @@ const MSPEC = [
   ['cRel', 10, 1000, 120, 'exp', 'release'],
   ['cMake', 0, 24, 2, 'lin', 'makeup'],
   ['cMix', 0, 1, 1, 'lin', 'mix'],
-  ['mVol', 0, 1.5, 0.6, 'lin', 'master'],
+  ['mVol', 0, 1.5, 0.55, 'lin', 'master'],
   // mixer: per voice mute/solo and send mutes
   ...[0, 1, 2, 3, 4, 5].flatMap((v) => [
     [`mute${v}`, 0, 1, 0, 'int', `mute ${v + 1}`],

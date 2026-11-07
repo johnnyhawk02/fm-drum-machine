@@ -141,7 +141,7 @@ const NAMES = {
   eDiv: ECHO_DIVS.map((d) => d[0]), mdType: DIST_TYPES, swType: GROOVES, rushVoice: SHORT,
   rushEvery: RUSH_EVERY.map((b) => (b ? `${b} bar` : 'off')),
 };
-const ONOFF = new Set(['fxA', 'fxB', 'fxC', 'fxD', 'lRetrig', 'eSync', 'ePing']);
+const ONOFF = new Set(['fxA', 'phase', 'fxB', 'fxC', 'fxD', 'lRetrig', 'eSync', 'ePing']);
 function fmt(g, x = getG(g)) {
   const p = specOf(g);
   const id = p.id;

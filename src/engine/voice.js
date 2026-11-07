@@ -2,7 +2,7 @@
 // amp env, crush, LFO. Mono (retrigger chokes itself: closed hat chokes open).
 
 import { P, NP } from './params.js';
-import { sinc, softclip, Rng, decayCoef, Svf } from './dsp.js';
+import { sinc, softclip, Rng, decayCoef, Svf, OnePole } from './dsp.js';
 
 const V_CTRL = 16; // control-rate block
 const FADE_N = 64; // retrigger fade, samples
@@ -47,6 +47,11 @@ export class Voice {
     this.pendAlt = 0;
     this.incBase = new Float64Array(4);
     this.aa = new Float32Array(4).fill(1);
+    this.wob = new OnePole();
+    this.wobAmt = 0;
+    this.hPitch = 1;
+    this.hIdx = 1;
+    this.driftInc = 0;
     this.fixedMask = 0;
     this.pSemis = 0;
     this.burstGap = 0;
@@ -144,6 +149,11 @@ export class Voice {
     this.burstN = this.burstGap * (1 + this.rng.bi() * 0.12);
     this.burstC = decayCoef(p[b + P.nSpace] * 0.8, sr);
     if (p[b + P.lRetrig] >= 0.5) this.lfoPh = 0;
+    // humanise: a fresh random pitch and index offset for each hit
+    const hum = p[b + P.hum];
+    this.hPitch = Math.pow(2, (this.rng.bi() * hum * 25) / 1200);
+    this.hIdx = 1 + this.rng.bi() * hum * 0.2;
+    this.wob.z = 0;
     this.ctr = 0;
   }
 
@@ -192,8 +202,12 @@ export class Voice {
       let f = fx ? p[base] * 1000 : p[base] * f0;
       if (fx) fixed |= 1 << o;
       if (!((car >> o) & 1)) f *= rmul;
-      this.incBase[o] = f / sr;
+      this.incBase[o] = (fx ? f : f * this.hPitch) / sr;
     }
+    this.driftInc = (p[b + P.drift] * 40) / sr;
+    // fm noise: the wobble is low-passed at a few times the pitch, scaled to the operator's own frequency
+    this.wobAmt = p[b + P.fmNoise] * 2;
+    if (this.wobAmt > 0) this.wob.set(Math.min(9000, f0 * 8), sr);
     this.fixedMask = fixed;
     // FM index into each operator shrinks as that operator's pitch rises, so sidebands stay below
     // Nyquist (cheap anti-aliasing): 20 * (0.5 - f/sr)^4, capped at 1
@@ -213,7 +227,7 @@ export class Voice {
     // velocity scalars
     this.velAmp = 1 - p[b + P.vLvl] * (1 - vel);
     const fmv = p[b + P.fmLvl];
-    this.fmIdx = fmv * fmv * 4 * (1 - p[b + P.vFm] * (1 - vel)) * (1 + this.lFm);
+    this.fmIdx = fmv * fmv * 4 * (1 - p[b + P.vFm] * (1 - vel)) * (1 + this.lFm) * this.hIdx;
   }
 
   process(p, b) {
@@ -227,6 +241,19 @@ export class Voice {
     // ---- pitch envelope, per sample
     const pm = this.pSemis !== 0 ? Math.pow(2, (this.pEnv * this.pSemis) / 12) : 1;
     for (let o = 0; o < 4; o++) this.inc[o] = (this.fixedMask >> o) & 1 ? this.incBase[o] : this.incBase[o] * pm;
+    {
+      const car = ALG_CAR[p[b + P.algo] | 0];
+      let w = 0;
+      if (this.wobAmt > 0) w = this.wob.lp(this.rng.bi()) * this.wobAmt * this.nEnv;
+      if (w !== 0 || this.driftInc !== 0) {
+        // carriers wobble less (a fifth as much), and less again when the FM index is high
+        const cw = w * 0.2 * (1 - Math.min(0.5, this.fmIdx * 2.5));
+        for (let o = 0; o < 4; o++) {
+          if ((car >> o) & 1) this.inc[o] *= 1 + cw;
+          else this.inc[o] = this.inc[o] * (1 + w) + this.driftInc;
+        }
+      }
+    }
 
     // ---- operator envelopes
     const env = this.env;

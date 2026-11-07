@@ -2,7 +2,7 @@
 // chances (hold the button). Drum-safe ranges stay near the starting kit; wild uses full ranges.
 
 const R_GROUPS = {
-  tone: ['algo', 'tune', 'fmLvl', 'fb', ...['A', 'B', 'C', 'D'].flatMap((o) => [`r${o}`, `l${o}`, `a${o}`, `d${o}`])],
+  tone: ['algo', 'tune', 'fmLvl', 'fb', 'fmEnd', 'drift', 'fmNoise', 'hum', ...['A', 'B', 'C', 'D'].flatMap((o) => [`r${o}`, `l${o}`, `a${o}`, `d${o}`])],
   shape: ['pAmt', 'pDec', 'clk', 'clkType', 'clkDec', 'aAtk', 'aHold', 'aDec', 'aCurve', 'aDec2'],
   noise: ['nLvl', 'nType', 'nCut', 'nRes', 'nAtk', 'nDec', 'nBurst', 'nSpace'],
   filter: ['fType', 'fCut', 'fRes', 'fDrive', 'fEnv', 'fEnvDec'],
@@ -11,7 +11,7 @@ const R_GROUPS = {
 // kept as they are in drum-safe mode (structure / routing)
 const SAFE_KEEP = new Set(['algo', 'fType', 'nType', 'clkType', 'lDest', 'lDest2', 'lShape', 'nBurst', 'fxA', 'fxB', 'fxC', 'fxD']);
 // how far (in knob turns) drum-safe moves from the starting kit
-const SAFE_SPAN = { tune: 0.08, bits: 0.06, srDiv: 0.06, fDrive: 0.15, lDepth: 0.12 };
+const SAFE_SPAN = { tune: 0.08, drift: 0.1, fmNoise: 0.15, hum: 0.2, fmEnd: 0.15, bits: 0.06, srDiv: 0.06, fDrive: 0.15, lDepth: 0.12 };
 
 const RND = {
   everything: { label: 'everything', depth: 1, chance: {} },

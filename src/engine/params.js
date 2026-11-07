@@ -15,7 +15,10 @@ const SPEC = [
   ['fmLvl', 0, 1, 0.8, 'lin', 'fm lvl'],
   ['fb', -1, 1, 0, 'bip', 'fdbk'], // below 0 the feedback is squared: a rougher, asymmetric colour
   ['fmEnd', 0, 1, 0, 'lin', 'fm end'], // modulator envelopes settle at this level instead of 0
-  ['phase', 0, 1, 0, 'int', '90° start'], // carriers start at 90°, modulators at 180°: a harder first transient
+  ['phase', 0, 1, 0, 'int', '90° start'],
+  ['drift', -1, 1, 0, 'bip', 'drift'], // fixed Hz offset (±40 Hz) on the modulators: slow beating that does not follow pitch
+  ['fmNoise', 0, 1, 0, 'lin', 'fm noise'], // filtered noise wobbles the operator pitches, following the noise envelope
+  ['hum', 0, 1, 0, 'lin', 'humanise'], // per-hit random: up to ±25 cents pitch and ±20% FM index // carriers start at 90°, modulators at 180°: a harder first transient
   // operator A..D: ratio, level, attack, decay, curve, fixed
   ...['A', 'B', 'C', 'D'].flatMap((o) => [
     [`r${o}`, 0.125, 16, 1, 'exp', `ratio ${o}`],

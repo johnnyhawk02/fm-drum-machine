@@ -6,7 +6,7 @@ const vKnobs = []; // [knob, param id]
 
 const VTABS = {
   'tone/fm': [
-    ['fm', ['algo', 'tune', 'fmLvl', 'fb']],
+    ['fm', ['algo', 'tune', 'fmLvl', 'fb', 'fmEnd', 'phase']],
     ...['A', 'B', 'C', 'D'].map((o) => [`op ${o}`, [`r${o}`, `l${o}`, `a${o}`, `d${o}`, `fx${o}`]]),
   ],
   shape: [
@@ -22,6 +22,7 @@ const VTABS = {
   mod: [
     ['lfo', ['lShape', 'lRate', 'lDepth', 'lDest', 'lDest2', 'lRetrig']],
     ['velocity', ['vLvl', 'vPitch', 'vFm', 'vFilt']],
+    ['wobble · humanise', ['drift', 'fmNoise', 'hum']],
     ['sends', ['sEcho', 'sRev', 'sDist', 'sRing']],
   ],
 };

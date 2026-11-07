@@ -38,13 +38,23 @@ function buildMutes() {
     sendRow(col, 'echo', `v${v}.sEcho`, `m.eMute${v}`);
     const meter = meterEl(26);
     muteMeters.push(meter);
-    col.append(meter);
+    // the meter doubles as the level fader: click or drag anywhere on it, the handle shows the level
+    const wrap = h('div', 'lvlfader');
+    const knobH = h('i', 'handle');
+    wrap.append(meter, knobH);
+    col.append(wrap);
     const lvl = h('div', 'lvl');
-    const lg = keyG(`v${v}.level`);
-    const drawL = () => (lvl.textContent = Math.round(getG(lg) * 100));
-    watch(`v${v}.level`, drawL);
+    const lk = `v${v}.level`;
+    const lm_ = model(lk);
+    const drawL = () => {
+      lvl.textContent = Math.round(getG(lm_.g) * 100);
+      knobH.style.bottom = `calc(${lm_.get() * 100}% - 2px)`;
+      wrap.classList.toggle('sel', S.sel === lk);
+    };
+    watch(lk, drawL);
     drawL();
-    bindDrag(lvl, () => model(`v${v}.level`));
+    levelDrag(wrap, lm_);
+    bindDrag(lvl, () => model(lk));
     lvl.style.cursor = 'ns-resize';
     const mk = `m.mute${v}`;
     const mb = toggle(mk, SHORT[v]);
@@ -53,6 +63,33 @@ function buildMutes() {
     cols.append(col);
   }
   el.append(head, cols);
+}
+function levelDrag(el, m) {
+  const at = (e) => {
+    const r = el.getBoundingClientRect();
+    m.set(clamp(1 - (e.clientY - r.top) / r.height, 0, 1));
+  };
+  el.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    select(m.key);
+    el.setPointerCapture(e.pointerId);
+    at(e);
+    const up = () => {
+      el.removeEventListener('pointermove', at);
+      el.removeEventListener('pointerup', up);
+      el.removeEventListener('pointercancel', up);
+    };
+    el.addEventListener('pointermove', at);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+  });
+  el.addEventListener('dblclick', () => m.set(m.def));
+  el.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    select(m.key);
+    m.set(clamp(m.get() - Math.sign(e.deltaY) * 0.02, 0, 1));
+  }, { passive: false });
 }
 function drawMeters() {
   const st = S.status;

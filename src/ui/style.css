@@ -108,6 +108,12 @@ h3 { margin: 0; font-weight: normal; font-size: 22px; letter-spacing: .14em; tex
 .mcol .lbl { font-size: 15px; opacity: .65; height: 14px; line-height: 14px; }
 .nbox { width: 100%; height: 30px; border: 2px solid var(--ink); border-radius: 3px; display: grid; place-items: center; font-size: 20px; cursor: ns-resize; }
 .nbox.muted { opacity: .35; text-decoration: line-through; }
+.mcol .lvlfader { position: relative; flex: 1; width: 40px; display: flex; justify-content: center; min-height: 60px; cursor: ns-resize; touch-action: none; }
+.mcol .lvlfader .handle { position: absolute; left: 0; right: 0; height: 4px; background: var(--ink); pointer-events: none; }
+.mcol .lvlfader .handle::before, .mcol .lvlfader .handle::after { content: ''; position: absolute; top: -4px; border: 6px solid transparent; }
+.mcol .lvlfader .handle::before { left: -6px; border-left-color: var(--ink); }
+.mcol .lvlfader .handle::after { right: -6px; border-right-color: var(--ink); }
+.mcol .lvlfader.sel .handle { height: 6px; }
 .mcol .meter { flex: 1; width: 22px; display: flex; flex-direction: column-reverse; gap: 2px; min-height: 60px; }
 .mcol .meter i { flex: 1; background: var(--dim); }
 .mcol .meter i.on { background: var(--ink); }

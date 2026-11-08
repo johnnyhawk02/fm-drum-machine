@@ -3,16 +3,15 @@
 let stageScale = 1;
 let stageW = 1440;
 let stageH = 900;
-// The page is laid out in design pixels (1440x900 at scale 1). It scales with the window, and the
-// spare width or height goes to the layout (the right-hand pages widen, the meters and the
-// sequencer strip grow taller) instead of black bars, up to 2200x1300 design pixels.
+// The page is one fixed 16:10 stage (1440x900 design pixels), scaled to fit the window, with
+// black bars on the spare side.
 function fitStage() {
   const st = $('stage');
   const vw = $('view').clientWidth || innerWidth;
   const vh = $('view').clientHeight || innerHeight;
   stageScale = Math.min(vw / 1440, vh / 900);
-  stageW = Math.min(2200, vw / stageScale);
-  stageH = Math.min(1300, vh / stageScale);
+  stageW = 1440;
+  stageH = 900;
   st.style.width = stageW + 'px';
   st.style.height = stageH + 'px';
   st.style.transform = `translate(-50%, -50%) scale(${stageScale})`;

@@ -80,32 +80,12 @@ void WebEditor::pageReady() {
     resized();
 }
 
-// Some web views read a served page as Latin-1 whatever its charset says, so the page goes out as plain
-// ASCII: characters past 127 become \uXXXX in the script (valid anywhere in JS) and \XXXXXX in the CSS.
-static std::vector<std::byte> asciiPage() {
-    const auto src = juce::String::fromUTF8(BinaryData::index_html, BinaryData::index_htmlSize);
-    juce::String out;
-    out.preallocateBytes((size_t) BinaryData::index_htmlSize + 4096);
-    const int styleStart = src.indexOf("<style>"), styleEnd = src.indexOf("</style>");
-    int i = 0;
-    for (auto p = src.getCharPointer(); !p.isEmpty(); ++i) {
-        const juce::juce_wchar c = p.getAndAdvance();
-        if (c < 128) out << juce::String::charToString(c);
-        else if (i > styleStart && i < styleEnd) out << "\\" << juce::String::toHexString((int) c).paddedLeft('0', 6);
-        else if (c < 0x10000) out << "\\u" << juce::String::toHexString((int) c).paddedLeft('0', 4);
-        else {
-            const int v = (int) c - 0x10000;
-            out << "\\u" << juce::String::toHexString(0xd800 + (v >> 10)) << "\\u" << juce::String::toHexString(0xdc00 + (v & 0x3ff));
-        }
-    }
-    const auto* d = reinterpret_cast<const std::byte*>(out.toRawUTF8());
-    return std::vector<std::byte>(d, d + out.getNumBytesAsUTF8());
-}
-
 std::optional<juce::WebBrowserComponent::Resource> WebEditor::resource(const juce::String& url) {
     const auto path = url.fromFirstOccurrenceOf("/", false, false).upToFirstOccurrenceOf("?", false, false);
     if (path.isEmpty() || path == "index.html") {
-        static const std::vector<std::byte> page = asciiPage();
+        // already plain ASCII (plugin/tools/ascii-page.mjs)
+        const auto* d = reinterpret_cast<const std::byte*>(BinaryData::index_html);
+        static const std::vector<std::byte> page(d, d + BinaryData::index_htmlSize);
         return juce::WebBrowserComponent::Resource { page, "text/html; charset=utf-8" };
     }
     return std::nullopt;

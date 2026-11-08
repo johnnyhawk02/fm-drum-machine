@@ -28,7 +28,9 @@ set(REPO ${CMAKE_CURRENT_SOURCE_DIR}/..)
 file(GLOB_RECURSE PROTO_SRC CONFIGURE_DEPENDS ${REPO}/src/*.js ${REPO}/src/*.css ${REPO}/src/*.html ${REPO}/presets/*.json ${REPO}/build.mjs)
 execute_process(COMMAND ${NODE} build.mjs WORKING_DIRECTORY ${REPO} RESULT_VARIABLE R1)
 execute_process(COMMAND ${NODE} tools/gen-cpp-params.mjs WORKING_DIRECTORY ${REPO} RESULT_VARIABLE R2)
-if(R1 OR R2)
+# the page for the web view, as plain ASCII (some web views read served pages as Latin-1)
+execute_process(COMMAND ${NODE} plugin/tools/ascii-page.mjs dist/index.html ${CMAKE_CURRENT_BINARY_DIR}/page/index.html WORKING_DIRECTORY ${REPO} RESULT_VARIABLE R3)
+if(R1 OR R2 OR R3)
   message(FATAL_ERROR "building the page from ../src failed")
 endif()
 
@@ -52,7 +54,7 @@ juce_add_plugin(FMDM
 file(GLOB PRESET_FILES ${REPO}/presets/*.json)
 file(GLOB IR_FILES ${REPO}/src/static/ir/*.flac)
 juce_add_binary_data(FMDMData SOURCES
-  ${REPO}/dist/index.html
+  ${CMAKE_CURRENT_BINARY_DIR}/page/index.html
   ${REPO}/src/static/logo.png
   ${PRESET_FILES}
   ${IR_FILES})

@@ -519,16 +519,22 @@ void FmDmProcessor::timerCallback() {
     }
 }
 
-// keep the convolver on the impulse response the model points at
+// keep the convolver on the impulse response the model points at (decoding a recorded one takes a moment,
+// so it happens on a worker thread; the convolver takes the new IR when it is ready)
 void FmDmProcessor::syncIR() {
     const int k = juce::jlimit(0, IR_USER, (int) std::lround(model.base[NV + M::rIr]));
     if (model.base[NV + M::rType] < 0.5f || k == irLoaded) return;
-    double rate = sr;
-    auto b = makeIR(k, sr, rate, &userIR, userIRRate);
     irLoaded = k;
-    if (b.getNumSamples() == 0) return;
-    conv.loadImpulseResponse(std::move(b), rate, juce::dsp::Convolution::Stereo::yes, juce::dsp::Convolution::Trim::no,
-                             juce::dsp::Convolution::Normalise::no);
+    auto user = std::make_shared<juce::AudioBuffer<float>>();
+    if (k == IR_USER) user->makeCopyOf(userIR);
+    const double rate0 = sr, urate = userIRRate;
+    irPool.addJob([this, k, user, rate0, urate] {
+        double rate = rate0;
+        auto b = makeIR(k, rate0, rate, user.get(), urate);
+        if (b.getNumSamples() > 0)
+            conv.loadImpulseResponse(std::move(b), rate, juce::dsp::Convolution::Stereo::yes, juce::dsp::Convolution::Trim::no,
+                                     juce::dsp::Convolution::Normalise::no);
+    });
 }
 
 // ---- state: the preset JSON (same format as the browser's presets)

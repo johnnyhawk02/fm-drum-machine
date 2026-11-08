@@ -100,6 +100,7 @@ private:
     juce::AudioBuffer<float> userIR;
     double userIRRate = 0;
     std::unique_ptr<juce::FileChooser> chooser;
+    juce::ThreadPool irPool { 1 }; // builds impulse responses off the message thread (destroyed first)
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FmDmProcessor)
 };

@@ -56,6 +56,7 @@ WebEditor::WebEditor(FmDmProcessor& p)
     // the page lays itself out for any size (1440x900 design pixels, scaled to fit)
     setResizable(true, true);
     setResizeLimits(720, 450, 2880, 1800);
+    if (auto* c = getConstrainer()) c->setFixedAspectRatio(1440.0 / 900.0); // 16:10, like the page
     setSize(1152, 720);
     web.goToURL(juce::WebBrowserComponent::getResourceProviderRoot());
 }

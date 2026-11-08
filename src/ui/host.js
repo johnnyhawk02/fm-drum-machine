@@ -57,6 +57,9 @@ const HOST = window.__JUCE__ && window.__JUCE__.backend ? (() => {
     while (outbox.length) send(outbox.shift());
     if (typeof irLoadStored === 'function') irLoadStored();
     readyRes();
+    const shown = () => send({ t: 'ready' }); // drawn: the plugin can drop its splash
+    requestAnimationFrame(shown);
+    setTimeout(shown, 300);
   }
 
   // keep the plugin's copy of the whole state current, for the DAW session

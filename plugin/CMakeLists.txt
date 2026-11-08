@@ -53,6 +53,7 @@ file(GLOB PRESET_FILES ${REPO}/presets/*.json)
 file(GLOB IR_FILES ${REPO}/src/static/ir/*.flac)
 juce_add_binary_data(FMDMData SOURCES
   ${REPO}/dist/index.html
+  ${REPO}/src/static/logo.png
   ${PRESET_FILES}
   ${IR_FILES})
 

@@ -36,6 +36,7 @@ public:
     // ---- the page (message thread)
     void fromPage(const juce::var& m);
     std::function<void(const juce::var&)> toPage; // set by the editor while it is open
+    std::function<void()> onPageReady;
 
 private:
     enum MsgType : uint8_t { SET, STEP, PLAY, STOP, TRIG, LANE_FIELD, LANE_STEP, LANE_SHAPE, LANE_TARGET, LANES_OFF, REC };

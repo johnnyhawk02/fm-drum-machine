@@ -126,6 +126,10 @@ void FmDmProcessor::fromPage(const juce::var& m) {
         if (toPage) toPage(juce::var(o));
         return;
     }
+    if (t == "ready") {
+        if (onPageReady) onPageReady();
+        return;
+    }
     if (t == "state") {
         pageState = m["preset"];
         haveState = true;

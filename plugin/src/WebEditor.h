@@ -11,6 +11,7 @@ class Splash : public juce::Component, private juce::Timer {
 public:
     Splash();
     void paint(juce::Graphics&) override;
+    void visibilityChanged() override { if (!isVisible()) stopTimer(); }
 
 private:
     void timerCallback() override { phase++; repaint(); }

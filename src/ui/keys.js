@@ -1,4 +1,4 @@
-// fm/dm — keyboard: space play, 1-7 randomisers, u undo, z..n mutes, a..h echo mutes, q..y reverb mutes,
+// fm/dm — keyboard: space play, 1-8 randomisers, u undo, z..n mutes, a..h echo mutes, q..y reverb mutes,
 // shift+1-6 voice page, [ ] pages, o presets, / search, ? help, esc closes, arrows turn the selected knob.
 
 function bindKeys() {
@@ -70,9 +70,9 @@ const HELP = [
   ['play', 'space plays and stops. rec records a wav: free, or an exact loop of 1 to 128 bars starting on the next bar.'],
   ['perf', 'the 24 knobs on the left are midi cc 1 to 24 on any channel. right-click any knob or fader to assign it to a perf knob, give it a step sequencer, or reset it. double-click resets.'],
   ['step sequencer', 'click a knob, then paint steps in the strip under perf. length 2 to 64 (pages of 16), slew, speed (a 16th up to 8 bars a step), depth, shapes and randoms. groove makes it follow the swing. the knob ring shows its movement as a lit arc.'],
-  ['randomise', '1 everything, 2 kit, 3 alter, 4 pattern, 5 xmod, 6 random fx, 7 alter fx, u undo. drag a button up or down to set its depth. hold it for its ranges and chances. right-click (or long-press) a drum on the voice page to randomise just that drum. options: randomise on next bar, wild ranges.'],
+  ['randomise', '1 everything, 2 kit, 3 alter, 4 pattern, 5 xmod, 6 random fx, 7 alter fx, 8 motion, u undo. drag a button up or down to set its depth. hold it for its ranges and chances. right-click (or long-press) a drum on the voice page to randomise just that drum. options: randomise on next bar, wild ranges, auto-level.'],
   ['mutes', 'z x c v b n mute the drums. a s d f g h mute echo sends, q w e r t y reverb sends. mutes act on notes, so tails ring on.'],
-  ['pages', '[ and ] step through beat, voice, fx, mix, mstr, prst. shift+1 to 6 opens a drum on the voice page. o presets, / search presets.'],
+  ['pages', '[ and ] step through beat, voice, fx, xmod, mix, mstr, prst. shift+1 to 6 opens a drum on the voice page. o presets, / search presets.'],
   ['knobs', 'drag up and down (shift for fine), scroll, or click then use the arrow keys.'],
   ['beat', 'genre, beat, energy, fills and density make the pattern. rush rolls one drum faster near the end of every n bars while the others drop out and a high-pass rises along the rush curve.'],
   ['midi', 'cc 1-24 perf knobs, cc 25-28 the selected sequencer length, slew, speed, depth. right-click a knob and pick midi learn to map your own cc.'],

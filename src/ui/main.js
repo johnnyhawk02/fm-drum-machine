@@ -80,6 +80,7 @@ function buildHeader() {
   play.id = 'play';
   const rec = btn('● rec', 'big', () => (typeof openRecorder === 'function' ? openRecorder() : toast('recording comes later')));
   rec.id = 'rec';
+  if (HOST) play.style.display = rec.style.display = 'none'; // plugin: the DAW has the transport
   hd.append(play, rec);
 }
 // ---- screen colour (saved in this browser). Light colours only, so the dark ink stays readable.

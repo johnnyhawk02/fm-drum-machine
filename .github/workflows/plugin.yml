@@ -1,0 +1,93 @@
+# Builds the fm/dm plugin (from the prototype in src/, see plugin/README.md) for Windows, Linux and macOS,
+# and checks the C++ engine still matches the JS engine. The built plugins are the run's artifacts.
+name: plugin
+on:
+  push:
+    paths: ['src/**', 'presets/**', 'plugin/**', 'build.mjs', 'tools/gen-cpp-params.mjs', '.github/workflows/plugin.yml']
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: windows-latest, name: windows }
+          - { os: ubuntu-22.04, name: linux }
+          - { os: macos-latest, name: mac }
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+
+      - name: Linux packages
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libasound2-dev libfreetype-dev libfontconfig1-dev libx11-dev libxrandr-dev \
+            libxinerama-dev libxcursor-dev libxext-dev libxcomposite-dev libgl1-mesa-dev libwebkit2gtk-4.1-dev libgtk-3-dev
+
+      - name: WebView2 SDK
+        if: runner.os == 'Windows'
+        run: nuget install Microsoft.Web.WebView2 -Version 1.0.2903.40 -OutputDirectory C:\wv2
+
+      - name: Configure
+        shell: bash
+        run: |
+          extra=""
+          [ "$RUNNER_OS" = "Windows" ] && extra="-DJUCE_WEBVIEW2_PACKAGE_LOCATION=C:/wv2"
+          [ "$RUNNER_OS" = "Linux" ] && extra="-G Ninja"
+          cmake -S plugin -B plugin/build -DCMAKE_BUILD_TYPE=Release -DFMDM_COPY_PLUGIN=OFF $extra
+
+      - name: Build
+        run: cmake --build plugin/build --config Release --parallel 4
+
+      - name: Engine matches the JS engine
+        shell: bash
+        run: |
+          exe=$(find plugin/build -type f \( -name fmdm_render -o -name fmdm_render.exe \) | head -1)
+          "$exe" renders && node plugin/test/compare.mjs renders
+
+      - name: Collect
+        shell: bash
+        run: |
+          mkdir -p out
+          art=plugin/build/FMDM_artefacts/Release
+          cp -R "$art/VST3/fm-dm.vst3" out/
+          [ -d "$art/AU" ] && cp -R "$art/AU/fm-dm.component" out/
+          if [ "$RUNNER_OS" = "macOS" ]; then cp -R "$art/Standalone/fm-dm.app" out/; else cp "$art/Standalone/"fm-dm* out/; fi
+          ls -la out
+          tar -czf fm-dm-${{ matrix.name }}.tgz -C out . # keeps the executable bits that artifacts drop
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fm-dm-${{ matrix.name }}
+          path: fm-dm-${{ matrix.name }}.tgz
+
+  # publish to the "plugin-latest" release (fixed download links for the install scripts): from main,
+  # or when run by hand
+  release:
+    needs: build
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with: { path: art }
+      - name: Zip
+        run: |
+          for p in mac windows linux; do
+            mkdir -p x/$p && tar -xzf art/fm-dm-$p/fm-dm-$p.tgz -C x/$p && (cd x/$p && zip -qry ../../fm-dm-$p.zip .)
+          done
+          ls -la *.zip
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view plugin-latest >/dev/null 2>&1 || gh release create plugin-latest --target "$GITHUB_SHA" --title "fm/dm plugin (latest)" \
+            --notes "VST3 / AU / standalone for macOS, Windows and Linux, built from the latest prototype. Install: see plugin/install."
+          gh release edit plugin-latest --target "$GITHUB_SHA" --notes "Built from ${GITHUB_SHA::7}. Install with plugin/install/install.sh (macOS, Linux) or install.ps1 (Windows)."
+          gh release upload plugin-latest fm-dm-mac.zip fm-dm-windows.zip fm-dm-linux.zip plugin/install/install.sh plugin/install/install.ps1 --clobber

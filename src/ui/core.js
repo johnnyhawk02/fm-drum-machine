@@ -50,6 +50,7 @@ function post(m) {
   else outbox.push(m);
 }
 async function startAudio() {
+  if (HOST) return HOST.start(); // inside the plugin: the C++ engine plays (host.js)
   if (ctx) return ctx.resume();
   ctx = new AudioContext({ latencyHint: 'interactive' });
   const url = URL.createObjectURL(new Blob([WORKLET_SRC], { type: 'text/javascript' }));

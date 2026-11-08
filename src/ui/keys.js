@@ -67,7 +67,7 @@ function bindKeys() {
 
 // ---- help, in the same LCD look
 const HELP = [
-  ['play', 'space plays and stops. rec records a wav: free, or an exact loop of 1 to 128 bars starting on the next bar.'],
+  ...(typeof HOST !== 'undefined' && HOST ? [] : [['play', 'space plays and stops. rec records a wav: free, or an exact loop of 1 to 128 bars starting on the next bar.']]),
   ['perf', 'the 24 knobs on the left are midi cc 1 to 24 on any channel. right-click any knob or fader to assign it to a perf knob, give it a step sequencer, or reset it. double-click resets.'],
   ['step sequencer', 'click a knob, then paint steps in the strip under perf. length 2 to 64 (pages of 16), slew, speed (a 16th up to 8 bars a step), depth, shapes and randoms. groove makes it follow the swing. the knob ring shows its movement as a lit arc.'],
   ['randomise', '1 everything, 2 kit, 3 alter, 4 pattern, 5 xmod, 6 random fx, 7 alter fx, u undo. drag a button up or down to set its depth. hold it for its ranges and chances. right-click (or long-press) a drum on the voice page to randomise just that drum. options: randomise on next bar, wild ranges.'],

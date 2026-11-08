@@ -8,6 +8,8 @@ fm/dm (frequency modulated drum machine) is a six-voice FM drum machine for the 
 
 MIT licence.
 
+There is also a JUCE plugin version (VST3 / AU / standalone) in `plugin/`, see `plugin/README.md`.
+
 ## Build
 
     node build.mjs      # writes dist/index.html (one self-contained page)

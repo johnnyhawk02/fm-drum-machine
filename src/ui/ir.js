@@ -160,6 +160,7 @@ async function irUse(name, data) {
   if (!ctx) await startAudio();
   const buf = irNorm(await ctx.decodeAudioData(data)); // match the factory level
   irUser = { name, buf };
+  if (HOST) HOST.userIR(name, buf);
   irShown = -1;
   IR_NAMES[IR_USER] = 'your ir';
 }

@@ -20,6 +20,18 @@ else()
   FetchContent_MakeAvailable(juce)
 endif()
 
+# The editor is the browser version's page, and the engine's parameter layout comes from its params.js:
+# both are regenerated from ../src on every configure (and the configure re-runs when ../src changes),
+# so a build always matches the latest prototype. Needs Node.
+find_program(NODE node REQUIRED)
+set(REPO ${CMAKE_CURRENT_SOURCE_DIR}/..)
+file(GLOB_RECURSE PROTO_SRC CONFIGURE_DEPENDS ${REPO}/src/*.js ${REPO}/src/*.css ${REPO}/src/*.html ${REPO}/presets/*.json ${REPO}/build.mjs)
+execute_process(COMMAND ${NODE} build.mjs WORKING_DIRECTORY ${REPO} RESULT_VARIABLE R1)
+execute_process(COMMAND ${NODE} tools/gen-cpp-params.mjs WORKING_DIRECTORY ${REPO} RESULT_VARIABLE R2)
+if(R1 OR R2)
+  message(FATAL_ERROR "building the page from ../src failed")
+endif()
+
 juce_add_plugin(FMDM
   COMPANY_NAME "johnnyhawk"
   BUNDLE_ID "com.johnnyhawk.fmdm"
@@ -30,18 +42,19 @@ juce_add_plugin(FMDM
   NEEDS_MIDI_INPUT TRUE
   NEEDS_MIDI_OUTPUT FALSE
   IS_MIDI_EFFECT FALSE
-  EDITOR_WANTS_KEYBOARD_FOCUS FALSE
+  EDITOR_WANTS_KEYBOARD_FOCUS TRUE
+  NEEDS_WEB_BROWSER TRUE
   COPY_PLUGIN_AFTER_BUILD TRUE
   VST3_CATEGORIES Instrument Drum
   AU_MAIN_TYPE kAudioUnitType_MusicDevice
   FORMATS VST3 AU Standalone)
 
-file(GLOB PRESET_FILES ${CMAKE_CURRENT_SOURCE_DIR}/../presets/*.json)
-file(GLOB IR_FILES ${CMAKE_CURRENT_SOURCE_DIR}/../src/static/ir/*.flac)
+file(GLOB PRESET_FILES ${REPO}/presets/*.json)
+file(GLOB IR_FILES ${REPO}/src/static/ir/*.flac)
 juce_add_binary_data(FMDMData SOURCES
+  ${REPO}/dist/index.html
   ${PRESET_FILES}
-  ${IR_FILES}
-  resources/VT323-Regular.ttf)
+  ${IR_FILES})
 
 target_sources(FMDM PRIVATE
   engine/Voice.cpp
@@ -50,18 +63,17 @@ target_sources(FMDM PRIVATE
   src/IRs.cpp
   src/Model.cpp
   src/PluginProcessor.cpp
-  src/PluginEditor.cpp
-  src/Widgets.cpp)
+  src/WebEditor.cpp)
 target_include_directories(FMDM PRIVATE engine src)
 
 target_compile_definitions(FMDM PUBLIC
-  JUCE_WEB_BROWSER=0
+  JUCE_WEB_BROWSER=1
   JUCE_USE_CURL=0
   JUCE_VST3_CAN_REPLACE_VST2=0
   JUCE_DISPLAY_SPLASH_SCREEN=0)
 
 target_link_libraries(FMDM
-  PRIVATE FMDMData juce::juce_audio_utils juce::juce_audio_formats juce::juce_dsp
+  PRIVATE FMDMData juce::juce_audio_utils juce::juce_audio_formats juce::juce_dsp juce::juce_gui_extra
   PUBLIC juce::juce_recommended_config_flags juce::juce_recommended_lto_flags)
 
 # engine render check against the JS engine (no JUCE): node plugin/test/compare.mjs <dir>

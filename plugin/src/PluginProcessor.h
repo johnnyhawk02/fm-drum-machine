@@ -1,5 +1,6 @@
-// fm/dm — plugin processor. The editor edits the Model on the message thread; every change goes to the
-// audio thread as a small message (like the browser's worklet port), so audio never waits on a lock.
+// fm/dm — plugin processor. The editor is the browser version's page in a web view (see src/ui/host.js):
+// its messages for the AudioWorklet arrive here instead and go to the audio thread through a lock-free
+// queue; status, bar and recording messages go back to the page.
 #pragma once
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_dsp/juce_dsp.h>
@@ -32,44 +33,64 @@ public:
     void getStateInformation(juce::MemoryBlock& destData) override;
     void setStateInformation(const void* data, int sizeInBytes) override;
 
-    // ---- editor side (message thread)
-    Model model;
-    void setParam(int g, float x);
-    void setStep(int voice, int step, int vel, int flag);
-    void loadPreset(const juce::var& pr);
-    void play(bool on);
-    void trigger(int voice, float vel, int alt);
-    bool loadUserIR(const juce::File& f);
-    juce::String userIRName;
-
-    // ---- shown by the editor
-    std::atomic<int> curStep { -1 };
-    std::atomic<bool> playing { false }, hostSync { false };
-    std::atomic<float> hostBpm { 0 };
-    std::atomic<float> meters[8] {};
-    std::atomic<int> modelVersion { 0 }; // bumps when the model changes from outside the editor (state, program)
+    // ---- the page (message thread)
+    void fromPage(const juce::var& m);
+    std::function<void(const juce::var&)> toPage; // set by the editor while it is open
 
 private:
-    enum MsgType : uint8_t { SET, STEP, PLAY, STOP, TRIG, LANE_FIELD, LANE_STEP, LANE_SHAPE, LANE_TARGET, LANES_OFF };
+    enum MsgType : uint8_t { SET, STEP, PLAY, STOP, TRIG, LANE_FIELD, LANE_STEP, LANE_SHAPE, LANE_TARGET, LANES_OFF, REC };
     enum LaneField : int { LF_LEN, LF_SLEW, LF_SPEED, LF_DEPTH, LF_GROOVE, LF_MODE };
-    struct Msg { MsgType t; int a; int b; float x; };
-    void push(MsgType t, int a, int b, float x);
-    void pushAll();
+    struct Msg { MsgType t; bool atBar; int a; int b; float x; };
+    void push(MsgType t, int a, int b, float x, bool atBar = false);
+    void pushPreset(const Model& md, bool atBar);
+    void pageMsg(const juce::var& m, bool atBar);
+    void onAudio(const Msg& m);
     void apply(const Msg& m);
     void applyModelDirect();
     void renderSpan(float* L, float* R, int off, int n);
-    void timerCallback() override; // keeps the convolver on the IR the model points at
+    void record(const float* L, const float* R, int n);
+    void timerCallback() override;
+    void syncIR();
+    void sendState();
 
-    juce::AbstractFifo fifo { 1 << 15 };
-    std::vector<Msg> msgs = std::vector<Msg>(1 << 15);
-    juce::SpinLock pushLock; // more than one non-audio thread may push (message thread, host state calls)
+    Model model;             // what the engine is playing, kept on the message thread
+    juce::var pageState;     // the page's own capture of it (adds perf knobs, generator, name)
+    bool haveState = false;  // restored from the DAW or set by the page: the page loads it when it opens
+
+    juce::AbstractFifo fifo { 1 << 16 };
+    std::vector<Msg> msgs = std::vector<Msg>(1 << 16);
+    std::vector<Msg> pending; // messages waiting for the next bar (audio thread)
+    juce::SpinLock pushLock;
 
     std::unique_ptr<Engine> engine;
     std::unique_ptr<Sequencer> seq;
     double sr = 48000;
     bool hostWasPlaying = false, startedByHost = false;
     double lastPpq = 0, lastBpm = 120;
+    long lastBars = 0;
     int program = 0;
+
+    // recording (worklet 'rec'): audio thread -> fifo -> page
+    int recMode = 0; // 0 off, 1 free, 2 armed loop, 3 loop running
+    bool recStarted = false;
+    long recLeft = 0;
+    juce::AbstractFifo recFifo { 1 << 21 };
+    std::vector<float> recBuf = std::vector<float>(1 << 21);
+    std::atomic<int> recDone { 0 };
+
+    // MIDI CCs for the page's MIDI learn / perf knobs
+    juce::AbstractFifo ccFifo { 256 };
+    int ccBuf[256][3] {};
+
+    // status for the page
+    std::atomic<int> curStep { -1 }, pendingN { 0 };
+    std::atomic<long> stepIdx { 0 }, bars { 0 };
+    std::atomic<bool> playing { false }, hostSync { false };
+    std::atomic<float> hostBpm { 0 }, gr { 0 }, rush { -1 };
+    std::atomic<float> meters[8] {};
+    std::atomic<float> lanes[NUM_LANES] {};
+    std::atomic<int> lpos[NUM_LANES] {};
+    long sentBars = 0;
 
     // convolution reverb: the engine's send is convolved after each block and comes back in the next one
     juce::dsp::Convolution conv;
@@ -77,7 +98,7 @@ private:
     int irLoaded = -1;
     juce::AudioBuffer<float> userIR;
     double userIRRate = 0;
-    juce::CriticalSection irLock;
+    std::unique_ptr<juce::FileChooser> chooser;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR(FmDmProcessor)
 };

@@ -1,27 +1,23 @@
 # fm/dm plugin (JUCE)
 
-fm/dm as a VST3 / AU / standalone instrument, built with JUCE. Milestone 1: the full sound engine and
-sequencer from the browser version, presets, host sync, MIDI and a basic editor.
+fm/dm as a VST3 / AU / standalone instrument, built with JUCE. It always matches the latest prototype:
 
-- `engine/` — the sound engine and sequencer in plain C++ (no JUCE), ported line by line from
-  `src/engine` and `src/seq`. `ParamsGen.h` is generated from `src/engine/params.js` and `kits.js` by
-  `node tools/gen-cpp-params.mjs`, so the parameter layout stays the same in both.
-- `src/` — the JUCE processor and editor.
-- `test/` — `render.cpp` renders every voice and a beat with the C++ engine; `compare.mjs` renders the
-  same with the JS engine and checks they match (voices are bit-identical).
+- The editor **is** the browser version's page: `dist/index.html`, built from `src/` by `build.mjs`, shown in
+  a web view. Every configure rebuilds it from `../src` (and re-runs when `../src` changes), so the plugin has
+  exactly the same layout, pages, presets and behaviour as the web app.
+- `src/ui/host.js` is the only plugin-specific part of the page: inside the plugin, the messages the page
+  sends its AudioWorklet go to the C++ engine instead, and status, bar, recording and MIDI CC messages come
+  back. In a browser it does nothing.
+- `engine/` is the sound engine and sequencer in plain C++, a line-by-line port of `src/engine` and `src/seq`.
+  `ParamsGen.h` is regenerated from `src/engine/params.js` and `kits.js` on every configure.
+  **When the JS engine changes, port the change here** and check with `test/compare.mjs`: the voices are
+  bit-identical today.
+- `src/` holds the processor (the worklet's message handling, bar-synced changes, recording, convolution
+  reverb with the same IRs, host tempo/transport/loop sync, MIDI notes in) and the web view editor.
 
-## What it does
-
-- Six FM voices, crossfeed, echo, reverb (algorithmic, or convolution with the same 10 synthesised and
-  20 recorded impulse responses, or your own file), send distortion and ring, duck, master drive and
-  compressor.
-- The step sequencer with groove, accents, open hats, rush and knob lanes, as in the browser.
-- Follows the host: tempo, start/stop and loop position. The play button runs it on its own when the
-  host is stopped (and in the standalone app).
-- MIDI in plays the drums: General MIDI drum notes (36 kick, 38 snare, 42/46 closed/open hat, 49 cymbal,
-  toms on drum 2 and 3), or C3 upwards for the six drums in order.
-- The built-in presets from `presets/`, plus load/save of preset files in the browser's export format,
-  so presets move both ways. The DAW session saves the whole state.
+The DAW session saves the whole state in the preset format. MIDI notes play the drums (General MIDI drum
+notes, or C3 upwards for the six drums); CCs go to the page's MIDI learn and perf knobs (CC 1..24).
+Recordings and preset exports open a save dialog.
 
 ## Build (macOS)
 

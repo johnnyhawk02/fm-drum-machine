@@ -1,12 +1,13 @@
 #include "PluginProcessor.h"
-#include "PluginEditor.h"
+#include "WebEditor.h"
 
 namespace fmdm {
 
 FmDmProcessor::FmDmProcessor()
     : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)) {
+    pending.reserve(1 << 16);
     if (factoryPresets().size() > 0) model.fromPreset(factoryPresets()[0], false);
-    startTimerHz(10);
+    startTimerHz(40);
 }
 
 bool FmDmProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
@@ -15,60 +16,165 @@ bool FmDmProcessor::isBusesLayoutSupported(const BusesLayout& layouts) const {
 }
 
 // ---- messages to the audio thread
-void FmDmProcessor::push(MsgType t, int a, int b, float x) {
+void FmDmProcessor::push(MsgType t, int a, int b, float x, bool atBar) {
     const juce::SpinLock::ScopedLockType sl(pushLock);
     auto w = fifo.write(1);
-    if (w.blockSize1 > 0) msgs[(size_t) w.startIndex1] = { t, a, b, x };
-    else if (w.blockSize2 > 0) msgs[(size_t) w.startIndex2] = { t, a, b, x };
+    if (w.blockSize1 > 0) msgs[(size_t) w.startIndex1] = { t, atBar, a, b, x };
+    else if (w.blockSize2 > 0) msgs[(size_t) w.startIndex2] = { t, atBar, a, b, x };
 }
 
-void FmDmProcessor::setParam(int g, float x) {
-    if (g < 0 || g >= NG) return;
-    model.base[g] = x;
-    push(SET, 0, g, x);
-}
-
-void FmDmProcessor::setStep(int voice, int step, int vel, int flag) {
-    const int i = voice * MAX_STEPS + step;
-    model.vel[i] = (uint8_t) vel;
-    model.flag[i] = (uint8_t) flag;
-    push(STEP, vel | (flag << 8), i, 0);
-}
-
-void FmDmProcessor::play(bool on) { push(on ? PLAY : STOP, 0, 0, 0); }
-void FmDmProcessor::trigger(int voice, float vel, int alt) { push(TRIG, voice, alt, vel); }
-
-void FmDmProcessor::pushAll() {
-    for (int g = 0; g < NG; g++) push(SET, 0, g, model.base[g]);
-    for (int i = 0; i < NUM_VOICES * MAX_STEPS; i++) push(STEP, model.vel[i] | (model.flag[i] << 8), i, 0);
-    push(LANES_OFF, 0, 0, 0);
+void FmDmProcessor::pushPreset(const Model& md, bool atBar) {
+    for (int g = 0; g < NG; g++) push(SET, 0, g, md.base[g], atBar);
+    for (int i = 0; i < NUM_VOICES * MAX_STEPS; i++) push(STEP, md.vel[i] | (md.flag[i] << 8), i, 0, atBar);
+    push(LANES_OFF, 0, 0, 0, atBar);
     for (int l = 0; l < NUM_LANES; l++) {
-        const Lane& ln = model.lanes[l];
+        const Lane& ln = md.lanes[l];
         if (ln.g < 0) continue;
-        for (int k = 0; k < ln.len; k++) push(LANE_STEP, l, k, ln.steps[k]);
-        if (ln.mode) for (int k = 0; k < ln.len; k++) push(LANE_SHAPE, l, k, ln.shapes[k]);
-        push(LANE_FIELD, l, LF_LEN, (float) ln.len);
-        push(LANE_FIELD, l, LF_SLEW, ln.slew);
-        push(LANE_FIELD, l, LF_SPEED, (float) ln.speed);
-        push(LANE_FIELD, l, LF_DEPTH, ln.depth);
-        push(LANE_FIELD, l, LF_GROOVE, ln.groove ? 1.f : 0.f);
-        push(LANE_FIELD, l, LF_MODE, (float) ln.mode);
-        push(LANE_TARGET, l, ln.g, 0);
+        for (int k = 0; k < MAX_STEPS; k++) push(LANE_STEP, l, k, ln.steps[k], atBar);
+        for (int k = 0; k < MAX_STEPS; k++) push(LANE_SHAPE, l, k, ln.shapes[k], atBar);
+        push(LANE_FIELD, l, LF_LEN, (float) ln.len, atBar);
+        push(LANE_FIELD, l, LF_SLEW, ln.slew, atBar);
+        push(LANE_FIELD, l, LF_SPEED, (float) ln.speed, atBar);
+        push(LANE_FIELD, l, LF_DEPTH, ln.depth, atBar);
+        push(LANE_FIELD, l, LF_GROOVE, ln.groove ? 1.f : 0.f, atBar);
+        push(LANE_FIELD, l, LF_MODE, (float) ln.mode, atBar);
+        push(LANE_TARGET, l, ln.g, 0, atBar);
     }
 }
 
-void FmDmProcessor::loadPreset(const juce::var& pr) {
-    // the host's tempo wins while it is driving us
-    if (!model.fromPreset(pr, hostSync.load())) return;
-    pushAll();
-    modelVersion++;
+// ---- from the page: the same messages its AudioWorklet takes (src/worklet.js), plus a few for the plugin
+static float fnum(const juce::var& v) { return (float) (double) v; }
+
+void FmDmProcessor::pageMsg(const juce::var& m, bool atBar) {
+    atBar = atBar || (bool) m.getProperty("atBar", false);
+    const auto t = m["t"].toString();
+    if (t == "set") {
+        const int g = (int) m["g"];
+        if (g < 0 || g >= NG) return;
+        model.base[g] = fnum(m["x"]);
+        push(SET, 0, g, model.base[g], atBar);
+    } else if (t == "all") {
+        if (auto* b = m["base"].getArray())
+            for (int g = 0; g < juce::jmin(NG, b->size()); g++) {
+                model.base[g] = fnum((*b)[g]);
+                push(SET, 0, g, model.base[g], atBar);
+            }
+    } else if (t == "pat") {
+        auto* v = m["vel"].getArray();
+        auto* f = m["flag"].getArray();
+        if (!v || !f) return;
+        for (int i = 0; i < juce::jmin(NUM_VOICES * MAX_STEPS, v->size(), f->size()); i++) {
+            model.vel[i] = (uint8_t) (int) (*v)[i];
+            model.flag[i] = (uint8_t) (int) (*f)[i];
+            push(STEP, model.vel[i] | (model.flag[i] << 8), i, 0, atBar);
+        }
+    } else if (t == "lane") {
+        const int l = (int) m["l"], g = (int) m["g"];
+        if (l < 0 || l >= NUM_LANES) return;
+        Lane& ln = model.lanes[l];
+        if (g < 0) {
+            ln = Lane();
+            push(LANE_TARGET, l, -1, 0, atBar);
+            return;
+        }
+        if (auto* st = m["steps"].getArray())
+            for (int k = 0; k < juce::jmin(MAX_STEPS, st->size()); k++) push(LANE_STEP, l, k, ln.steps[k] = fnum((*st)[k]), atBar);
+        if (auto* sh = m["shapes"].getArray())
+            for (int k = 0; k < juce::jmin(MAX_STEPS, sh->size()); k++) push(LANE_SHAPE, l, k, ln.shapes[k] = (uint8_t) (int) (*sh)[k], atBar);
+        ln.len = juce::jlimit(1, MAX_STEPS, (int) m["len"]);
+        ln.slew = fnum(m["slew"]);
+        ln.speed = juce::jlimit(0, 7, (int) m["speed"]);
+        ln.depth = fnum(m["depth"]);
+        ln.groove = (bool) m["groove"];
+        ln.mode = (int) m.getProperty("mode", 0);
+        ln.g = g;
+        push(LANE_FIELD, l, LF_LEN, (float) ln.len, atBar);
+        push(LANE_FIELD, l, LF_SLEW, ln.slew, atBar);
+        push(LANE_FIELD, l, LF_SPEED, (float) ln.speed, atBar);
+        push(LANE_FIELD, l, LF_DEPTH, ln.depth, atBar);
+        push(LANE_FIELD, l, LF_GROOVE, ln.groove ? 1.f : 0.f, atBar);
+        push(LANE_FIELD, l, LF_MODE, (float) ln.mode, atBar);
+        push(LANE_TARGET, l, g, 0, atBar);
+    } else if (t == "lanesOff") {
+        for (auto& ln : model.lanes) ln = Lane();
+        push(LANES_OFF, 0, 0, 0, atBar);
+    } else if (t == "bundle") {
+        if (auto* a = m["msgs"].getArray())
+            for (auto& x : *a) pageMsg(x, atBar);
+    } else if (t == "play") {
+        push(PLAY, 0, 0, 0);
+    } else if (t == "stop") {
+        push(STOP, 0, 0, 0);
+    } else if (t == "trig") {
+        push(TRIG, (int) m["v"], (int) m.getProperty("alt", 0), fnum(m.getProperty("vel", 1.0)));
+    } else if (t == "rec") {
+        push(REC, (int) m.getProperty("mode", 0), (int) m.getProperty("bars", 4), 0);
+    }
 }
 
+void FmDmProcessor::fromPage(const juce::var& m) {
+    const auto t = m["t"].toString();
+    if (t == "hello") {
+        // the page has opened: give it the saved state, or let it keep the kit it started with
+        auto* o = new juce::DynamicObject();
+        o->setProperty("t", "state");
+        o->setProperty("sr", sr);
+        if (haveState) {
+            o->setProperty("preset", pageState.isObject() ? pageState : model.toPreset(model.name));
+            o->setProperty("name", pageState.isObject() ? pageState["name"] : juce::var(model.name));
+        }
+        if (toPage) toPage(juce::var(o));
+        return;
+    }
+    if (t == "state") {
+        pageState = m["preset"];
+        haveState = true;
+        return;
+    }
+    if (t == "irUser") {
+        auto* ch = m["ch"].getArray();
+        if (!ch || ch->isEmpty()) return;
+        std::vector<juce::MemoryBlock> data;
+        for (auto& c : *ch) {
+            juce::MemoryOutputStream os;
+            juce::Base64::convertFromBase64(os, c.toString());
+            data.push_back(os.getMemoryBlock());
+        }
+        const int n = (int) (data[0].getSize() / sizeof(float));
+        userIR.setSize((int) data.size(), n);
+        for (int c = 0; c < (int) data.size(); c++)
+            std::memcpy(userIR.getWritePointer(c), data[(size_t) c].getData(), (size_t) juce::jmin(n, (int) (data[(size_t) c].getSize() / sizeof(float))) * sizeof(float));
+        userIRRate = (double) m.getProperty("sr", 48000);
+        irLoaded = -1;
+        syncIR();
+        return;
+    }
+    if (t == "save") {
+        // a download from the page (a recording, an exported preset file)
+        auto data = std::make_shared<juce::MemoryOutputStream>();
+        juce::Base64::convertFromBase64(*data, m["data"].toString());
+        const auto name = juce::File::createLegalFileName(m["name"].toString());
+        chooser = std::make_unique<juce::FileChooser>("save", juce::File::getSpecialLocation(juce::File::userDocumentsDirectory).getChildFile(name));
+        chooser->launchAsync(juce::FileBrowserComponent::saveMode | juce::FileBrowserComponent::canSelectFiles | juce::FileBrowserComponent::warnAboutOverwriting,
+                             [data](const juce::FileChooser& fc) {
+                                 const auto f = fc.getResult();
+                                 if (f != juce::File()) f.replaceWithData(data->getData(), data->getDataSize());
+                             });
+        return;
+    }
+    pageMsg(m, false);
+}
+
+// DAW program change: the factory preset straight into the engine (the page shows it next time it opens)
 void FmDmProcessor::setCurrentProgram(int index) {
     const auto& all = factoryPresets();
     if (index < 0 || index >= all.size()) return;
     program = index;
-    loadPreset(all[index]);
+    if (!model.fromPreset(all[index], hostSync.load())) return;
+    pageState = all[index];
+    haveState = true;
+    pushPreset(model, false);
+    if (toPage) fromPage(juce::JSON::parse("{\"t\":\"hello\"}"));
 }
 
 const juce::String FmDmProcessor::getProgramName(int index) {
@@ -77,6 +183,15 @@ const juce::String FmDmProcessor::getProgramName(int index) {
 }
 
 // ---- audio thread
+void FmDmProcessor::onAudio(const Msg& m) {
+    // like the worklet: changes marked for the next bar wait while playing
+    if (m.atBar && seq->playing) {
+        if (pending.size() < pending.capacity()) pending.push_back(m);
+        return;
+    }
+    apply(m);
+}
+
 void FmDmProcessor::apply(const Msg& m) {
     Sequencer& s = *seq;
     switch (m.t) {
@@ -85,8 +200,17 @@ void FmDmProcessor::apply(const Msg& m) {
             s.vel[m.b] = (uint8_t) (m.a & 0xff);
             s.flag[m.b] = (uint8_t) (m.a >> 8);
             break;
-        case PLAY: if (!s.playing) s.start(); startedByHost = false; break;
-        case STOP: s.stop(); break;
+        case PLAY:
+            pending.clear();
+            s.start();
+            lastBars = s.bars;
+            startedByHost = false;
+            break;
+        case STOP:
+            s.stop();
+            for (auto& x : pending) apply(x);
+            pending.clear();
+            break;
         case TRIG: engine->trigger(m.a, m.x, m.b); break;
         case LANE_STEP: s.lSteps[m.a * MAX_STEPS + m.b] = m.x; break;
         case LANE_SHAPE: s.lShape[m.a * MAX_STEPS + m.b] = (uint8_t) m.x; break;
@@ -105,10 +229,28 @@ void FmDmProcessor::apply(const Msg& m) {
             const int l = m.a;
             if (s.lTarget[l] >= 0 && s.lTarget[l] != m.b) s.setFlat(s.lTarget[l], s.base[s.lTarget[l]]);
             s.lTarget[l] = m.b;
+            if (m.b < 0) s.lOut[l] = 0;
             break;
         }
         case LANES_OFF:
             for (int l = 0; l < NUM_LANES; l++) s.clearLane(l);
+            break;
+        case REC:
+            // mode 0 stop, 1 free, 2 exact loop of b bars (starts at the next bar, or now if stopped)
+            if (m.a == 0) {
+                recMode = 0;
+                recStarted = false;
+                recDone = 1;
+            } else if (m.a == 1) recMode = 1;
+            else {
+                recLeft = (long) std::lround(m.b * 4 * 60 * sr / engine->master[M::bpm]);
+                if (!s.playing) {
+                    s.start();
+                    lastBars = s.bars;
+                }
+                recStarted = false;
+                recMode = 2;
+            }
             break;
     }
 }
@@ -138,8 +280,11 @@ void FmDmProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     engine = std::make_unique<Engine>(sr, 1);
     seq = std::make_unique<Sequencer>(*engine, 1);
     fifo.reset();
+    pending.clear();
     applyModelDirect();
     hostWasPlaying = startedByHost = false;
+    lastBars = 0;
+    recMode = 0;
     const int n = juce::jmax(1, samplesPerBlock);
     irSend.setSize(2, n);
     irWet.setSize(2, n);
@@ -148,7 +293,7 @@ void FmDmProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     irWet.clear();
     conv.prepare({ sr, (juce::uint32) n, 2 });
     irLoaded = -1;
-    timerCallback();
+    syncIR();
 }
 
 void FmDmProcessor::renderSpan(float* L, float* R, int off, int n) {
@@ -161,7 +306,7 @@ void FmDmProcessor::renderSpan(float* L, float* R, int off, int n) {
 }
 
 static int midiVoice(int note, int& alt) {
-    // General MIDI drum notes, plus C1..F1 (36..41) for the six voices in order
+    // General MIDI drum notes, plus C3 upwards for the six voices in order
     alt = 0;
     switch (note) {
         case 35: case 36: return 0;
@@ -173,8 +318,35 @@ static int midiVoice(int note, int& alt) {
         case 46: alt = 1; return 5;
         default: break;
     }
-    if (note >= 60) return (note - 60) % 6; // a keyboard: C3 up plays the voices in order
+    if (note >= 60) return (note - 60) % 6;
     return -1;
+}
+
+void FmDmProcessor::record(const float* L, const float* R, int n) {
+    if (recMode == 2 && seq->barOff >= 0) recMode = 3; // armed loop: starts at this bar
+    if (recMode != 1 && recMode != 3) return;
+    int i0 = 0, i1 = n;
+    if (recMode == 3 && !recStarted) {
+        i0 = juce::jmax(0, seq->barOff);
+        recStarted = true;
+    }
+    if (recMode == 3 && i1 - i0 > recLeft) i1 = i0 + (int) recLeft;
+    const int frames = juce::jmax(0, i1 - i0);
+    auto w = recFifo.write(frames * 2);
+    int k = 0;
+    for (int i = 0; i < w.blockSize1 + w.blockSize2; i += 2, k++) {
+        const int at = (i < w.blockSize1 ? w.startIndex1 + i : w.startIndex2 + i - w.blockSize1);
+        recBuf[(size_t) at] = L[i0 + k];
+        recBuf[(size_t) at + 1] = R[i0 + k];
+    }
+    if (recMode == 3) {
+        recLeft -= frames;
+        if (recLeft <= 0) {
+            recMode = 0;
+            recStarted = false;
+            recDone = 1;
+        }
+    }
 }
 
 void FmDmProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuffer& midi) {
@@ -190,11 +362,10 @@ void FmDmProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuf
         monoR.setSize(1, n, false, true);
     }
 
-    // editor messages
     {
         const auto r = fifo.read(fifo.getNumReady());
-        for (int i = 0; i < r.blockSize1; i++) apply(msgs[(size_t) (r.startIndex1 + i)]);
-        for (int i = 0; i < r.blockSize2; i++) apply(msgs[(size_t) (r.startIndex2 + i)]);
+        for (int i = 0; i < r.blockSize1; i++) onAudio(msgs[(size_t) (r.startIndex1 + i)]);
+        for (int i = 0; i < r.blockSize2; i++) onAudio(msgs[(size_t) (r.startIndex2 + i)]);
     }
 
     // host transport: follow its tempo, start and stop with it, and re-align after a loop or a jump
@@ -210,10 +381,14 @@ void FmDmProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuf
             hostPlaying = pos->getIsPlaying();
             const auto ppq = pos->getPpqPosition();
             if (hostPlaying && !hostWasPlaying) {
+                pending.clear();
                 seq->startAt(ppq ? *ppq : 0);
+                lastBars = seq->bars;
                 startedByHost = true;
             } else if (!hostPlaying && hostWasPlaying && startedByHost) {
                 seq->stop();
+                for (auto& x : pending) apply(x);
+                pending.clear();
                 startedByHost = false;
             } else if (hostPlaying && ppq) {
                 const double expect = lastPpq + n / sr * lastBpm / 60;
@@ -226,29 +401,49 @@ void FmDmProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuf
     hostWasPlaying = hostPlaying;
     hostSync = hostPlaying;
 
-    // render, split at each MIDI note so hits land on their sample
     float* L = buffer.getWritePointer(0);
     float* R = buffer.getNumChannels() > 1 ? buffer.getWritePointer(1) : nullptr;
-    const bool mono = R == nullptr; // a mono output: R is rendered aside, then folded in
+    const bool mono = R == nullptr;
     if (mono) {
         monoR.clear();
         R = monoR.getWritePointer(0);
     }
-    int pos = 0;
+    // render, split at each MIDI note so hits land on their sample
+    int pos = 0, barAt = -1;
+    auto span = [&](int to) {
+        if (to <= pos) return;
+        renderSpan(L, R, pos, to - pos);
+        if (seq->barOff >= 0 && barAt < 0) barAt = pos + seq->barOff;
+        pos = to;
+    };
     for (const auto meta : midi) {
         const auto msg = meta.getMessage();
-        const int at = juce::jlimit(0, n, meta.samplePosition);
-        if (at > pos) {
-            renderSpan(L, R, pos, at - pos);
-            pos = at;
-        }
+        span(juce::jlimit(0, n, meta.samplePosition));
         if (msg.isNoteOn()) {
             int alt = 0;
             const int v = midiVoice(msg.getNoteNumber(), alt);
             if (v >= 0) engine->trigger(v, msg.getFloatVelocity(), alt);
+        } else if (msg.isController()) {
+            auto w = ccFifo.write(1);
+            if (w.blockSize1 > 0) {
+                ccBuf[w.startIndex1][0] = 0xb0 | (msg.getChannel() - 1);
+                ccBuf[w.startIndex1][1] = msg.getControllerNumber();
+                ccBuf[w.startIndex1][2] = msg.getControllerValue();
+            }
         }
     }
-    if (pos < n) renderSpan(L, R, pos, n - pos);
+    span(n);
+    seq->barOff = barAt;
+
+    // the bar changed: apply what waited for it
+    if (seq->bars != lastBars) {
+        lastBars = seq->bars;
+        if (!pending.empty()) {
+            for (auto& x : pending) apply(x);
+            pending.clear();
+        }
+    }
+    record(L, R, n);
     if (mono) for (int i = 0; i < n; i++) L[i] = (L[i] + R[i]) * 0.5f;
     for (int c = 2; c < buffer.getNumChannels(); c++) buffer.clear(c, 0, n);
 
@@ -260,17 +455,70 @@ void FmDmProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuf
     }
 
     curStep = seq->curStep;
+    stepIdx = seq->stepIdx;
+    bars = seq->bars;
     playing = seq->playing;
+    pendingN = (int) pending.size();
+    rush = seq->inRush ? (float) seq->rushC : -1.f;
+    gr = (float) engine->gr;
     for (int v = 0; v < NUM_VOICES; v++) meters[v] = (float) engine->voices[(size_t) v]->meter;
     meters[6] = (float) engine->peakL;
     meters[7] = (float) engine->peakR;
+    for (int l = 0; l < NUM_LANES; l++) {
+        lanes[l] = seq->lOut[l];
+        lpos[l] = seq->lPos[l];
+    }
 }
 
-// ---- IR
+// ---- to the page, and the IR, on the message thread
+static juce::var obj(std::initializer_list<std::pair<const char*, juce::var>> kv) {
+    auto* o = new juce::DynamicObject();
+    for (auto& [k, v] : kv) o->setProperty(k, v);
+    return juce::var(o);
+}
+
 void FmDmProcessor::timerCallback() {
+    syncIR();
+    if (!toPage) {
+        // nobody to send to: drop recorded audio and CCs
+        recFifo.reset();
+        ccFifo.reset();
+        return;
+    }
+    juce::Array<juce::var> m8, ln, lp;
+    for (auto& x : meters) m8.add(x.load());
+    for (auto& x : lanes) ln.add(x.load());
+    for (auto& x : lpos) lp.add(x.load());
+    toPage(obj({ { "t", "st" }, { "step", curStep.load() }, { "stepIdx", (juce::int64) stepIdx.load() }, { "playing", playing.load() },
+                 { "meters", m8 }, { "gr", gr.load() }, { "lanes", ln }, { "lpos", lp }, { "rush", rush.load() }, { "pending", pendingN.load() },
+                 { "hostBpm", hostSync.load() ? juce::var(hostBpm.load()) : juce::var(0) } }));
+    const long b = bars.load();
+    if (b != sentBars) {
+        sentBars = b;
+        toPage(obj({ { "t", "bar" }, { "bars", (juce::int64) b } }));
+    }
+    // recorded audio, as base64 float32 (interleaved L R), then the end marker
+    const int ready = recFifo.getNumReady() & ~1;
+    const bool done = recDone.load() != 0;
+    if (ready > 0 || done) {
+        const auto r = recFifo.read(ready);
+        juce::MemoryBlock mb;
+        mb.append(recBuf.data() + r.startIndex1, (size_t) r.blockSize1 * sizeof(float));
+        mb.append(recBuf.data() + r.startIndex2, (size_t) r.blockSize2 * sizeof(float));
+        if (done) recDone = 0;
+        toPage(obj({ { "t", "rec" }, { "data", juce::Base64::toBase64(mb.getData(), mb.getSize()) }, { "done", done } }));
+    }
+    const auto c = ccFifo.read(ccFifo.getNumReady());
+    for (int i = 0; i < c.blockSize1 + c.blockSize2; i++) {
+        const int at = i < c.blockSize1 ? c.startIndex1 + i : c.startIndex2 + i - c.blockSize1;
+        toPage(obj({ { "t", "midi" }, { "data", juce::Array<juce::var> { ccBuf[at][0], ccBuf[at][1], ccBuf[at][2] } } }));
+    }
+}
+
+// keep the convolver on the impulse response the model points at
+void FmDmProcessor::syncIR() {
     const int k = juce::jlimit(0, IR_USER, (int) std::lround(model.base[NV + M::rIr]));
     if (model.base[NV + M::rType] < 0.5f || k == irLoaded) return;
-    juce::ScopedLock sl(irLock);
     double rate = sr;
     auto b = makeIR(k, sr, rate, &userIR, userIRRate);
     irLoaded = k;
@@ -279,44 +527,30 @@ void FmDmProcessor::timerCallback() {
                              juce::dsp::Convolution::Normalise::no);
 }
 
-bool FmDmProcessor::loadUserIR(const juce::File& f) {
-    juce::AudioBuffer<float> b;
-    double rate = 0;
-    if (!readAudioFile(f, b, rate)) return false;
-    {
-        juce::ScopedLock sl(irLock);
-        userIR = std::move(b);
-        userIRRate = rate;
-        userIRName = f.getFileNameWithoutExtension();
-    }
-    setParam(NV + M::rIr, (float) IR_USER);
-    setParam(NV + M::rType, 1);
-    irLoaded = -1;
-    timerCallback();
-    return true;
-}
-
-// ---- state: the preset JSON (same format as the browser), plus the plugin's own extras
+// ---- state: the preset JSON (same format as the browser's presets)
 void FmDmProcessor::getStateInformation(juce::MemoryBlock& destData) {
-    auto pr = model.toPreset(model.name);
-    if (auto* o = pr.getDynamicObject()) {
-        o->setProperty("app", "fm dm plugin");
-        o->setProperty("program", program);
-    }
-    juce::MemoryOutputStream(destData, false).writeString(juce::JSON::toString(pr, true));
+    auto pr = pageState.isObject() ? pageState : model.toPreset(model.name);
+    auto* o = new juce::DynamicObject();
+    o->setProperty("app", "fm dm plugin");
+    o->setProperty("program", program);
+    o->setProperty("preset", pr);
+    juce::MemoryOutputStream(destData, false).writeString(juce::JSON::toString(juce::var(o), true));
 }
 
 void FmDmProcessor::setStateInformation(const void* data, int sizeInBytes) {
     juce::MemoryInputStream in(data, (size_t) sizeInBytes, false);
-    const auto pr = juce::JSON::parse(in.readString());
-    program = (int) pr.getProperty("program", 0);
+    const auto st = juce::JSON::parse(in.readString());
+    program = (int) st.getProperty("program", 0);
+    const auto pr = st["preset"];
     if (model.fromPreset(pr, false)) {
-        pushAll();
-        modelVersion++;
+        pageState = pr;
+        haveState = true;
+        pushPreset(model, false);
+        if (toPage) fromPage(juce::JSON::parse("{\"t\":\"hello\"}"));
     }
 }
 
-juce::AudioProcessorEditor* FmDmProcessor::createEditor() { return new FmDmEditor(*this); }
+juce::AudioProcessorEditor* FmDmProcessor::createEditor() { return new WebEditor(*this); }
 
 } // namespace fmdm
 

@@ -43,8 +43,8 @@ Restart your DAW or rescan plug-ins afterwards.
 
 ### In your DAW
 
-- The plug-in has no play or rec buttons. Your DAW's transport starts and stops it, and it follows the DAW tempo. Record its output on a track as usual.
-- MIDI notes play the drums: General MIDI drum notes (36 kick, 38 snare, 42/46 hats, 49 cymbal), or C3 upwards for the six drums in order.
+- The plug-in has no play or rec buttons. Your DAW's transport starts and stops it, and it follows the DAW tempo. Record its output on a track as usual. In the standalone app, press space to play and stop.
+- MIDI notes play the drums. General MIDI drum notes work (36 kick, 38 snare, 42 closed hat, 46 open hat, 49 cymbal, toms for drum 2 and drum 3). From MIDI note 60 (C3 in most DAWs) upwards, each run of six notes plays the six drums in order.
 - Presets move freely between the web version and the plug-in.
 
 ## The screen
@@ -65,7 +65,7 @@ The header holds **randomise ▾**, **options**, **?** (help) and, on the web, *
 
 - Drag up and down (shift for fine), scroll, or click a knob and use the arrow keys. Double-click resets.
 - Right-click any knob or fader to assign it to a perf knob, give it a step sequencer, MIDI-learn it, or reset it.
-- **Step sequencer:** click a knob, then paint steps in the strip under perf. Length 2 to 64, slew, speed (a 16th up to 8 bars a step), depth, shapes, and slide or env mode. **groove** makes it follow the swing.
+- **Step sequencer:** click a knob, then paint steps in the strip under perf. Length 2 to 64, slew, speed (a 16th up to 8 bars a step), depth, shapes, and slide or env mode. Sequencers follow the swing.
 
 ## Randomise
 
@@ -80,7 +80,7 @@ Open **randomise ▾**: **everything**, **kit**, **alter**, **pattern**, **xmod*
 
 | key | action |
 |---|---|
-| space | play / stop (web) |
+| space | play / stop (web and standalone app) |
 | 1 to 8 | everything, kit, alter, pattern, xmod, random fx, alter fx, motion |
 | u | undo |
 | z x c v b n | mute each drum |

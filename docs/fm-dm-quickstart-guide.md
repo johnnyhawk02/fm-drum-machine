@@ -2,7 +2,7 @@
 
 fm/dm (frequency modulated drum machine) is a free six-voice FM drum machine. Every sound is made from scratch with 4-operator FM, a pitch envelope, click, noise, filter and crush. It runs in your browser and as a VST3 / AU plug-in and standalone app.
 
-- **Web:** open [elixir-fm.pages.dev](https://elixir-fm.pages.dev) and press **▶ play** (or space).
+- **Web:** open [fm-dm.johnnyhawk.org](https://fm-dm.johnnyhawk.org) and press **▶ play** (or space).
 - **Plug-in:** install with one line (below), then load **fm-dm** as an instrument in your DAW.
 
 ## Install the plug-in

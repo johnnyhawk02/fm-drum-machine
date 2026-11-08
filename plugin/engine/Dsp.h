@@ -59,7 +59,7 @@ struct Svf {
         const double nyq = sr * 0.49;
         if (fc > nyq) fc = nyq;
         if (fc < 10) fc = 10;
-        const double g = std::tan(M_PI * fc / sr);
+        const double g = std::tan(TWO_PI * 0.5 * fc / sr);
         k = 2 - 1.96 * (res < 0 ? 0 : res > 1 ? 1 : res);
         a1 = 1 / (1 + g * (g + k));
         a2 = g * a1;

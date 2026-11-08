@@ -34,6 +34,16 @@ if(R1 OR R2 OR R3)
   message(FATAL_ERROR "building the page from ../src failed")
 endif()
 
+if(APPLE)
+  set(FMDM_FORMATS VST3 AU Standalone)
+else()
+  set(FMDM_FORMATS VST3 Standalone)
+endif()
+option(FMDM_COPY_PLUGIN "copy the built plugins to the system plug-in folders" ON)
+if(WIN32)
+  set(FMDM_WEBVIEW2 NEEDS_WEBVIEW2 TRUE) # the page runs in Edge WebView2 (statically linked loader)
+endif()
+
 juce_add_plugin(FMDM
   COMPANY_NAME "johnnyhawk"
   BUNDLE_ID "com.johnnyhawk.fmdm"
@@ -46,10 +56,11 @@ juce_add_plugin(FMDM
   IS_MIDI_EFFECT FALSE
   EDITOR_WANTS_KEYBOARD_FOCUS TRUE
   NEEDS_WEB_BROWSER TRUE
-  COPY_PLUGIN_AFTER_BUILD TRUE
+  COPY_PLUGIN_AFTER_BUILD ${FMDM_COPY_PLUGIN}
+  ${FMDM_WEBVIEW2}
   VST3_CATEGORIES Instrument Drum
   AU_MAIN_TYPE kAudioUnitType_MusicDevice
-  FORMATS VST3 AU Standalone)
+  FORMATS ${FMDM_FORMATS})
 
 file(GLOB PRESET_FILES ${REPO}/presets/*.json)
 file(GLOB IR_FILES ${REPO}/src/static/ir/*.flac)
@@ -73,7 +84,8 @@ target_compile_definitions(FMDM PUBLIC
   JUCE_WEB_BROWSER=1
   JUCE_USE_CURL=0
   JUCE_VST3_CAN_REPLACE_VST2=0
-  JUCE_DISPLAY_SPLASH_SCREEN=0)
+  JUCE_DISPLAY_SPLASH_SCREEN=0
+  $<$<PLATFORM_ID:Windows>:JUCE_USE_WIN_WEBVIEW2_WITH_STATIC_LINKING=1>)
 
 target_link_libraries(FMDM
   PRIVATE FMDMData juce::juce_audio_utils juce::juce_audio_formats juce::juce_dsp juce::juce_gui_extra

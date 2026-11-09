@@ -23,7 +23,7 @@ VST3 and AU go to `~/Library/Audio/Plug-Ins`, the app to `~/Applications`. Apple
 irm https://github.com/johnnyhawk02/fm-drum-machine/releases/download/plugin-latest/install.ps1 | iex
 ```
 
-The VST3 goes to `%LOCALAPPDATA%\Programs\Common\VST3` (add it to your DAW's VST3 paths if needed), and the app is added to the Start menu. Windows 10/11, 64-bit.
+The VST3 goes to `C:\Program Files\Common Files\VST3` (Windows asks for admin once), and the app is added to the Start menu. Windows 10/11, 64-bit.
 
 **Linux** (terminal):
 

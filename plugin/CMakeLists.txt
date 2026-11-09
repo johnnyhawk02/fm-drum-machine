@@ -3,6 +3,9 @@
 #   cmake --build build --config Release
 # JUCE is fetched on first configure; pass -DJUCE_DIR=/path/to/JUCE to use a local copy.
 cmake_minimum_required(VERSION 3.22)
+# Windows: link the C++ runtime statically, so the .vst3 loads on machines without (or with an older)
+# VC++ redistributable; hosts such as FL Studio silently skip a plug-in whose DLLs don't load.
+set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 project(FMDM VERSION 0.1.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)

@@ -45,13 +45,15 @@ header .logo small { font-size: 18px; opacity: .6; margin-left: 4px; }
 header .rnd { position: relative; margin-left: 10px; }
 header .rnd .rndopen { height: 36px; min-width: 150px; font-size: 20px; }
 header .rnddrop { position: absolute; left: 0; top: 42px; z-index: 60; display: flex; flex-direction: column; gap: 6px;
-  background: var(--lcd); border: 2px solid var(--ink); border-radius: 4px; padding: 8px; min-width: 190px; }
+  background: var(--lcd); border: 2px solid var(--ink); border-radius: 8px; padding: 8px; min-width: 190px; }
 header .rnddrop[hidden] { display: none; }
 header .rnddrop .chk.mental { font-size: 20px; padding: 2px 4px; }
 header .rnddrop .chk.mental.on { color: var(--spot); }
 header .rnddrop .b { position: relative; height: 38px; font-size: 20px; text-align: left; padding: 0 10px; }
 header .rnddrop .b i { position: absolute; left: 0; bottom: 0; height: 3px; background: currentColor; opacity: .8; }
 header .sp { flex: 1; }
+/* the small header buttons line up with the randomise button */
+header > .b.sm { height: 36px; font-size: 19px; padding: 0 12px; min-width: 36px; }
 header .play { min-width: 130px; }
 header .play.on, #rec.on { background: var(--spot); border-color: var(--spot); color: var(--lcd); }
 #rec.on { animation: blink 1s steps(2) infinite; }
@@ -184,13 +186,13 @@ h3 { margin: 0; font-weight: normal; font-size: 22px; letter-spacing: .14em; tex
 .xf .cell.sel { outline: 2px solid var(--spot); outline-offset: 1px; }
 
 /* menus and dialogs */
-.menu { position: absolute; z-index: 50; background: var(--lcd); border: 2px solid var(--ink); min-width: 170px; padding: 4px 0; }
+.menu { position: absolute; z-index: 50; background: var(--lcd); border: 2px solid var(--ink); border-radius: 8px; overflow: hidden; min-width: 170px; padding: 4px 0; }
 .menu div { padding: 2px 12px; font-size: 20px; cursor: pointer; white-space: nowrap; }
 .menu div:hover { background: var(--ink); color: var(--lcd); }
 .dlg { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; }
-.dlg > div { background: var(--lcd); border: 2px solid var(--ink); padding: 16px 20px; min-width: 420px; max-width: 900px; max-height: 820px; overflow: auto; }
+.dlg > div { background: var(--lcd); border: 2px solid var(--ink); border-radius: 12px; padding: 18px 22px; min-width: 420px; max-width: 900px; max-height: 820px; overflow: auto; }
 .dlg h3 { margin-bottom: 10px; }
-.toast { position: absolute; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 60; background: var(--ink); color: var(--lcd); padding: 4px 14px; font-size: 20px; }
+.toast { position: absolute; left: 50%; top: 24px; transform: translateX(-50%); z-index: 60; background: var(--ink); color: var(--lcd); padding: 4px 14px; font-size: 20px; }
 input[type=text], input[type=search] { background: transparent; border: 2px solid var(--ink); border-radius: 3px; height: 34px; padding: 0 8px; font-size: 20px; outline: none; }
 .chk { display: inline-flex; gap: 6px; align-items: center; font-size: 19px; cursor: pointer; }
 .chk i { width: 16px; height: 16px; border: 1.5px solid var(--ink); display: inline-block; }

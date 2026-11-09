@@ -13,7 +13,9 @@ function buildFx() {
     echo: () => {
       const s = sect('echo');
       s.head.append(h('span', 'sp'), toggle('m.eSync', 'sync', 'sm'), toggle('m.ePing', 'ping-pong', 'sm'));
-      s.append(krow(['m.eDiv', 'm.eMs', 'm.eFine', 'm.eTone']), h('div', '', '&nbsp;'), krow(['m.eFb', 'm.eWidth', 'm.eLvl', h('div')]));
+      const r2 = krow(['m.eFb', 'm.eWidth', 'm.eLvl']);
+      r2.style.marginTop = '8px';
+      s.append(krow(['m.eDiv', 'm.eMs', 'm.eFine', 'm.eTone']), r2);
       return [s, sendsSect('echo sends', 'sEcho')];
     },
     reverb: () => {
@@ -31,14 +33,14 @@ function buildFx() {
       watch('m.rType', drawNote);
       watch('m.rIr', drawNote);
       drawNote();
-      ir.append(krow(['m.rType', 'm.rIr', h('div'), h('div'), h('div')]), note);
+      ir.append(krow(['m.rType', 'm.rIr']), note);
       return [s, ir, sendsSect('reverb sends', 'sRev')];
     },
     bus: () => {
       const d = sect('distortion bus');
-      d.append(krow(['m.sdDrive', 'm.sdTone', 'm.sdLvl', h('div')]));
+      d.append(krow(['m.sdDrive', 'm.sdTone', 'm.sdLvl']));
       const r = sect('ring mod bus');
-      r.append(krow(['m.rmHz', 'm.rmLvl', h('div'), h('div')]));
+      r.append(krow(['m.rmHz', 'm.rmLvl']));
       return [d, sendsSect('distortion sends', 'sDist'), r, sendsSect('ring mod sends', 'sRing')];
     },
   };

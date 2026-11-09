@@ -5,6 +5,8 @@ function buildMix() {
   const page = h('div');
   page.style.display = 'contents';
   const s = sect('mixer');
+  // the strips fill the page height: the level faders take what the knobs leave
+  s.style.cssText = 'flex:1;min-height:0;display:flex;flex-direction:column';
   const cols = h('div', 'row');
   cols.style.alignItems = 'stretch';
   cols.style.flex = '1';
@@ -18,7 +20,9 @@ function buildMix() {
     const fr = h('div');
     fr.style.display = 'flex';
     fr.style.gap = '4px';
-    fr.style.height = '180px';
+    fr.style.flex = '1';
+    fr.style.minHeight = '180px';
+    fr.style.marginTop = '6px';
     const f = fader(`v${v}.level`, { bars: 18, label: 'level' });
     const mt = meterEl(18);
     mt.className = 'meter';

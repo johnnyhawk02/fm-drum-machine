@@ -7,9 +7,11 @@ function sect(title, ...kids) {
   s.head = t;
   return s;
 }
+// a row of knobs on the right pages' six-column grid: short rows are padded so every page lines up
 function krow(keys, cls = 'row') {
   const r = h('div', cls);
   for (const k of keys) r.append(typeof k === 'string' ? knob(k) : k);
+  for (let i = keys.length; i < 6; i++) r.append(h('div'));
   return r;
 }
 
@@ -44,13 +46,21 @@ function buildBeat() {
     curve.addEventListener('pointerup', end, { once: true });
     curve.addEventListener('pointercancel', end, { once: true });
   });
-  const rushRow = krow(['m.rushEvery', 'm.rushLen', 'm.rushVoice', 'm.rushRate', 'm.rushHp']);
+  // feel knobs and the rush curve share the top row; the rush knobs sit under them, all on the six-column grid
   const curveWrap = h('div');
-  curveWrap.style.flex = '1.6';
+  curveWrap.style.flex = '3';
+  curveWrap.style.alignSelf = 'stretch';
+  curveWrap.style.display = 'flex';
+  curveWrap.style.flexDirection = 'column';
+  curve.style.height = 'auto';
+  curve.style.flex = '1';
   curveWrap.append(curve, h('div', 'dim', '<span style="font-size:16px">rush curve: roll speed + high-pass</span>'));
-  rushRow.append(curveWrap);
-  const feel = sect('feel · rush', krow(['m.swType', 'm.swDepth', 'm.accent']), rushRow);
-  feel.querySelector('.row').style.marginBottom = '6px';
+  const feelRow = h('div', 'row');
+  for (const k of ['m.swType', 'm.swDepth', 'm.accent']) feelRow.append(knob(k));
+  feelRow.append(curveWrap);
+  feelRow.style.marginBottom = '8px';
+  const rushRow = krow(['m.rushEvery', 'm.rushLen', 'm.rushVoice', 'm.rushRate', 'm.rushHp']);
+  const feel = sect('feel · rush', feelRow, rushRow);
 
   const dens = h('div', 'row');
   dens.style.height = '120px';

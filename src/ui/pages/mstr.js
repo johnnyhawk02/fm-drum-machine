@@ -20,7 +20,7 @@ function buildMstr() {
   const page = h('div');
   page.style.display = 'contents';
   const duck = sect('kick sidechain');
-  duck.append(krow(['m.dkAmt', 'm.dkRel', 'm.dkSpace', h('div'), h('div'), h('div')]));
+  duck.append(krow(['m.dkAmt', 'm.dkRel', 'm.dkSpace']));
   const dist = sect('distortion');
   dist.append(krow(['m.mdType', 'm.mdDrive', 'm.mdColour', 'm.mdTone', 'm.mdMix', 'm.mdVol']));
   const comp = sect('compressor');
@@ -34,7 +34,7 @@ function buildMstr() {
   outL = hbar(36);
   outR = hbar(36);
   const meters = h('div');
-  meters.style.cssText = 'display:flex;flex-direction:column;gap:4px;flex:3;justify-content:center';
+  meters.style.cssText = 'display:flex;flex-direction:column;gap:6px;flex:4;justify-content:center;align-self:center;padding-left:12px';
   const l1 = h('div');
   l1.style.cssText = 'display:flex;gap:8px;align-items:center';
   l1.append(h('span', '', 'L'), outL);
@@ -42,8 +42,8 @@ function buildMstr() {
   l2.style.cssText = 'display:flex;gap:8px;align-items:center';
   l2.append(h('span', '', 'R'), outR);
   meters.append(l1, l2);
-  const r = krow(['m.mVol', 'm.mHp']);
-  r.append(meters);
+  const r = h('div', 'row');
+  r.append(knob('m.mVol'), knob('m.mHp'), meters);
   out.append(r);
   page.append(duck, dist, comp, out);
   return page;

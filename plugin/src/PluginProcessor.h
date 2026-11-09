@@ -9,6 +9,8 @@
 
 namespace fmdm {
 
+void pageLog(const juce::String& msg);
+
 class FmDmProcessor : public juce::AudioProcessor, private juce::Timer {
 public:
     FmDmProcessor();

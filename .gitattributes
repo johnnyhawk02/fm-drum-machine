@@ -1,0 +1,6 @@
+# LF everywhere (build.mjs strips import/export lines by matching \n)
+* text=auto eol=lf
+*.png binary
+*.flac binary
+*.woff2 binary
+*.wav binary

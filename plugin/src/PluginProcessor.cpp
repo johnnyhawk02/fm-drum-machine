@@ -112,9 +112,19 @@ void FmDmProcessor::pageMsg(const juce::var& m, bool atBar) {
     }
 }
 
+// the page's errors and start-up checks, for bug reports: <app data>/fm-dm/page.log
+// (Windows: %APPDATA%\fm-dm\page.log)
+void pageLog(const juce::String& msg) {
+    auto f = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory).getChildFile("fm-dm").getChildFile("page.log");
+    f.getParentDirectory().createDirectory();
+    if (f.getSize() > 256 * 1024) f.deleteFile();
+    f.appendText(juce::Time::getCurrentTime().toISO8601(true) + " " + msg + "\n");
+}
+
 void FmDmProcessor::fromPage(const juce::var& m) {
     const auto t = m["t"].toString();
     if (t == "hello") {
+        pageLog("page: hello");
         // the page has opened: give it the saved state, or let it keep the kit it started with
         auto* o = new juce::DynamicObject();
         o->setProperty("t", "state");
@@ -124,6 +134,10 @@ void FmDmProcessor::fromPage(const juce::var& m) {
             o->setProperty("name", pageState.isObject() ? pageState["name"] : juce::var(model.name));
         }
         if (toPage) toPage(juce::var(o));
+        return;
+    }
+    if (t == "log") {
+        pageLog(m["msg"].toString());
         return;
     }
     if (t == "ready") {

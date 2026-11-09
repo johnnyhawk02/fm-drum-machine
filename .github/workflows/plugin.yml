@@ -49,6 +49,12 @@ jobs:
           exe=$(find plugin/build -type f \( -name fmdm_render -o -name fmdm_render.exe \) | head -1)
           "$exe" renders && node plugin/test/compare.mjs renders
 
+      - name: UI loads in WebView2
+        if: runner.os == 'Windows'
+        shell: bash
+        run: |
+          node plugin/test/webview-check.mjs plugin/build/FMDM_artefacts/Release/Standalone/fm-dm.exe
+
       - name: Collect
         shell: bash
         run: |

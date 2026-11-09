@@ -58,7 +58,26 @@ WebEditor::WebEditor(FmDmProcessor& p)
     setResizeLimits(720, 450, 2880, 1800);
     if (auto* c = getConstrainer()) c->setFixedAspectRatio(1440.0 / 900.0); // 16:10, like the page
     setSize(1152, 720);
+    pageLog("editor: opening " + juce::WebBrowserComponent::getResourceProviderRoot());
     web.goToURL(juce::WebBrowserComponent::getResourceProviderRoot());
+    // ask the page directly (not through its messages) how it's doing, a few times, into page.log
+    for (int ms : { 5000, 20000 }) {
+        juce::Component::SafePointer<WebEditor> sp(this);
+        juce::Timer::callAfterDelay(ms, [sp, ms] {
+            if (sp == nullptr) return;
+            sp->web.evaluateJavascript(
+                "JSON.stringify({rs:document.readyState,href:location.href,w:innerWidth,h:innerHeight,"
+                "juce:!!(window.__JUCE__&&window.__JUCE__.backend),hdr:(document.getElementById('hdr')||{children:[]}).children.length,"
+                "perf:(document.getElementById('perf')||{children:[]}).children.length,err:window.__fmdmErr||null,"
+                "html:document.documentElement.outerHTML.length,js:(document.scripts[0]||{text:''}).text.length,"
+                "tail:(document.scripts[0]||{text:''}).text.slice(-60),"
+                "parse:(()=>{try{new Function((document.scripts[0]||{text:''}).text);return 'ok'}catch(e){return String(e)}})()})",
+                [ms](juce::WebBrowserComponent::EvaluationResult r) {
+                    if (auto* v = r.getResult()) pageLog("probe " + juce::String(ms) + "ms: " + v->toString());
+                    else pageLog("probe " + juce::String(ms) + "ms failed: " + (r.getError() ? r.getError()->message : juce::String("?")));
+                });
+        });
+    }
 }
 
 WebEditor::~WebEditor() {

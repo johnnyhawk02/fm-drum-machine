@@ -58,7 +58,23 @@ WebEditor::WebEditor(FmDmProcessor& p)
     setResizeLimits(720, 450, 2880, 1800);
     if (auto* c = getConstrainer()) c->setFixedAspectRatio(1440.0 / 900.0); // 16:10, like the page
     setSize(1152, 720);
+    pageLog("editor: opening " + juce::WebBrowserComponent::getResourceProviderRoot());
     web.goToURL(juce::WebBrowserComponent::getResourceProviderRoot());
+    // ask the page directly (not through its messages) how it's doing, a few times, into page.log
+    for (int ms : { 3000, 8000, 15000, 30000 }) {
+        juce::Component::SafePointer<WebEditor> sp(this);
+        juce::Timer::callAfterDelay(ms, [sp, ms] {
+            if (sp == nullptr) return;
+            sp->web.evaluateJavascript(
+                "JSON.stringify({rs:document.readyState,href:location.href,w:innerWidth,h:innerHeight,"
+                "juce:!!(window.__JUCE__&&window.__JUCE__.backend),hdr:(document.getElementById('hdr')||{children:[]}).children.length,"
+                "perf:(document.getElementById('perf')||{children:[]}).children.length,err:window.__fmdmErr||null})",
+                [ms](juce::WebBrowserComponent::EvaluationResult r) {
+                    if (auto* v = r.getResult()) pageLog("probe " + juce::String(ms) + "ms: " + v->toString());
+                    else pageLog("probe " + juce::String(ms) + "ms failed: " + (r.getError() ? r.getError()->message : juce::String("?")));
+                });
+        });
+    }
 }
 
 WebEditor::~WebEditor() {
@@ -82,6 +98,7 @@ void WebEditor::pageReady() {
 }
 
 std::optional<juce::WebBrowserComponent::Resource> WebEditor::resource(const juce::String& url) {
+    pageLog("resource: " + url);
     const auto path = url.fromFirstOccurrenceOf("/", false, false).upToFirstOccurrenceOf("?", false, false);
     if (path.isEmpty() || path == "index.html") {
         // already plain ASCII (plugin/tools/ascii-page.mjs)

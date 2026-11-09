@@ -10,7 +10,7 @@ const exe = process.argv[2];
 const log = join(process.env.APPDATA, 'fm-dm', 'page.log');
 rmSync(log, { force: true });
 const app = spawn(exe, [], { stdio: 'inherit' });
-await new Promise((r) => setTimeout(r, 25000));
+await new Promise((r) => setTimeout(r, 35000));
 console.log('app still running:', app.exitCode === null);
 try {
   const jpg = join(process.env.RUNNER_TEMP || process.env.TEMP, 'shot.jpg');

@@ -68,7 +68,10 @@ WebEditor::WebEditor(FmDmProcessor& p)
             sp->web.evaluateJavascript(
                 "JSON.stringify({rs:document.readyState,href:location.href,w:innerWidth,h:innerHeight,"
                 "juce:!!(window.__JUCE__&&window.__JUCE__.backend),hdr:(document.getElementById('hdr')||{children:[]}).children.length,"
-                "perf:(document.getElementById('perf')||{children:[]}).children.length,err:window.__fmdmErr||null})",
+                "perf:(document.getElementById('perf')||{children:[]}).children.length,err:window.__fmdmErr||null,"
+                "html:document.documentElement.outerHTML.length,js:(document.scripts[0]||{text:''}).text.length,"
+                "tail:(document.scripts[0]||{text:''}).text.slice(-60),"
+                "parse:(()=>{try{new Function((document.scripts[0]||{text:''}).text);return 'ok'}catch(e){return String(e)}})()})",
                 [ms](juce::WebBrowserComponent::EvaluationResult r) {
                     if (auto* v = r.getResult()) pageLog("probe " + juce::String(ms) + "ms: " + v->toString());
                     else pageLog("probe " + juce::String(ms) + "ms failed: " + (r.getError() ? r.getError()->message : juce::String("?")));

@@ -5,7 +5,8 @@
 import { execSync } from 'node:child_process';
 import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, copyFileSync } from 'node:fs';
 
-const read = (f) => readFileSync(new URL(f, import.meta.url), 'utf8');
+// LF only: a Windows checkout may have CRLF, which the import/export stripping below wouldn't match
+const read = (f) => readFileSync(new URL(f, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
 const strip = (src) => src
   .replace(/^import[\s\S]*?from\s+'[^']+';\n/gm, '')
   .replace(/^export \{[^}]*\};?\n/gm, '')

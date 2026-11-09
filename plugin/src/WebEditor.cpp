@@ -61,7 +61,7 @@ WebEditor::WebEditor(FmDmProcessor& p)
     pageLog("editor: opening " + juce::WebBrowserComponent::getResourceProviderRoot());
     web.goToURL(juce::WebBrowserComponent::getResourceProviderRoot());
     // ask the page directly (not through its messages) how it's doing, a few times, into page.log
-    for (int ms : { 3000, 8000, 15000, 30000 }) {
+    for (int ms : { 5000, 20000 }) {
         juce::Component::SafePointer<WebEditor> sp(this);
         juce::Timer::callAfterDelay(ms, [sp, ms] {
             if (sp == nullptr) return;
@@ -101,7 +101,6 @@ void WebEditor::pageReady() {
 }
 
 std::optional<juce::WebBrowserComponent::Resource> WebEditor::resource(const juce::String& url) {
-    pageLog("resource: " + url);
     const auto path = url.fromFirstOccurrenceOf("/", false, false).upToFirstOccurrenceOf("?", false, false);
     if (path.isEmpty() || path == "index.html") {
         // already plain ASCII (plugin/tools/ascii-page.mjs)

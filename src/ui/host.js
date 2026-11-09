@@ -5,6 +5,20 @@
 
 const HOST = window.__JUCE__ && window.__JUCE__.backend ? (() => {
   const be = window.__JUCE__.backend;
+  // a script error inside a DAW is otherwise invisible: show it on the page, so a screenshot tells us
+  const showErr = (msg) => {
+    window.__fmdmErr = (window.__fmdmErr ? window.__fmdmErr + '\n' : '') + msg;
+    let d = document.getElementById('fmdmerr');
+    if (!d) {
+      d = document.createElement('pre');
+      d.id = 'fmdmerr';
+      d.style.cssText = 'position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;margin:0;padding:8px;max-height:40%;overflow:auto;background:#17200e;color:#e0532a;font:12px monospace;white-space:pre-wrap';
+      (document.body || document.documentElement).append(d);
+    }
+    d.textContent = window.__fmdmErr;
+  };
+  addEventListener('error', (e) => showErr(`error: ${e.message} (line ${e.lineno}:${e.colno})${e.error && e.error.stack ? '\n' + e.error.stack : ''}`));
+  addEventListener('unhandledrejection', (e) => showErr(`promise: ${e.reason && (e.reason.stack || e.reason.message) || e.reason}`));
   // typed arrays don't survive JSON: send plain arrays
   const plain = (m) => {
     if (ArrayBuffer.isView(m)) return Array.from(m);

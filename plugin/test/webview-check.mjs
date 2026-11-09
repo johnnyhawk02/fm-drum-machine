@@ -19,7 +19,12 @@ try {
     await sleep(1000);
     browser = await chromium.connectOverCDP(`http://127.0.0.1:${port}`).catch(() => null);
   }
-  if (!browser) throw new Error('no WebView2 debug port: the editor never opened a web view');
+  if (!browser) {
+    console.log('app still running:', app.exitCode === null);
+    const ps = spawn('powershell', ['-NoProfile', '-Command', `Add-Type -AssemblyName System.Windows.Forms,System.Drawing; $b=[System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $i=New-Object System.Drawing.Bitmap $b.Width,$b.Height; [System.Drawing.Graphics]::FromImage($i).CopyFromScreen(0,0,0,0,$i.Size); $i.Save('${shot}'); Get-Process | Where-Object { $_.ProcessName -match 'fm-dm|msedgewebview2' } | Format-Table ProcessName,Id,MainWindowTitle`], { stdio: 'inherit' });
+    await new Promise((r) => ps.on('exit', r));
+    throw new Error('no WebView2 debug port: the editor never opened a web view');
+  }
   let page;
   for (let i = 0; i < 30 && !page; i++) {
     page = browser.contexts().flatMap((c) => c.pages())[0];

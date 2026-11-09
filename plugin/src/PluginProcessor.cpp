@@ -126,6 +126,14 @@ void FmDmProcessor::fromPage(const juce::var& m) {
         if (toPage) toPage(juce::var(o));
         return;
     }
+    if (t == "log") {
+        // the page's errors and start-up check, for bug reports: <app data>/fm-dm/page.log
+        auto f = juce::File::getSpecialLocation(juce::File::userApplicationDataDirectory).getChildFile("fm-dm").getChildFile("page.log");
+        f.getParentDirectory().createDirectory();
+        if (f.getSize() > 256 * 1024) f.deleteFile();
+        f.appendText(juce::Time::getCurrentTime().toISO8601(true) + " " + m["msg"].toString() + "\n");
+        return;
+    }
     if (t == "ready") {
         if (onPageReady) onPageReady();
         return;

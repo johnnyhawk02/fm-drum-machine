@@ -16,7 +16,13 @@ const HOST = window.__JUCE__ && window.__JUCE__.backend ? (() => {
       (document.body || document.documentElement).append(d);
     }
     d.textContent = window.__fmdmErr;
+    try { be.emitEvent('fmdm', { t: 'log', msg }); } catch {}
   };
+  // a line in the plugin's log once the page has had time to start (page.log, next to its saved data)
+  setTimeout(() => {
+    const n = (id) => (document.getElementById(id) || { children: [] }).children.length;
+    be.emitEvent('fmdm', { t: 'log', msg: `page: ${location.href} ${innerWidth}x${innerHeight} header=${n('hdr')} perf=${n('perf')} tabs=${n('tabs')} errors=${window.__fmdmErr ? 'yes' : 'no'}` });
+  }, 4000);
   addEventListener('error', (e) => showErr(`error: ${e.message} (line ${e.lineno}:${e.colno})${e.error && e.error.stack ? '\n' + e.error.stack : ''}`));
   addEventListener('unhandledrejection', (e) => showErr(`promise: ${e.reason && (e.reason.stack || e.reason.message) || e.reason}`));
   // typed arrays don't survive JSON: send plain arrays

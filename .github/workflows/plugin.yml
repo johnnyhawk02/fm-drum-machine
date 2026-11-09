@@ -53,17 +53,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          reg query "HKLM\SOFTWARE\WOW6432Node\Microsoft\EdgeUpdate\Clients\{F3017226-FE2A-4295-8BDF-00C3A9A7E4C5}" //v pv \
-            || { curl -sSLo wv2.exe https://go.microsoft.com/fwlink/p/?LinkId=2124703 && ./wv2.exe //silent //install; }
-          npm i --no-save --no-package-lock --prefix plugin/test playwright-core@1.48.2
-          node plugin/test/webview-check.mjs plugin/build/FMDM_artefacts/Release/Standalone/fm-dm.exe webview.png
-
-      - uses: actions/upload-artifact@v4
-        if: always() && runner.os == 'Windows'
-        with:
-          name: webview-shot
-          path: webview.png
-          if-no-files-found: ignore
+          node plugin/test/webview-check.mjs plugin/build/FMDM_artefacts/Release/Standalone/fm-dm.exe
 
       - name: Collect
         shell: bash

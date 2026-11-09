@@ -39,12 +39,13 @@
   </ul>
 
   <h2>Windows</h2>
-  <p>Open <b>PowerShell</b> (no admin needed) and paste:</p>
+  <p>Open <b>PowerShell</b> and paste (Windows asks for admin once, to put the VST3 in the shared folder):</p>
   <div class="cmd"><pre>irm https://github.com/johnnyhawk02/fm-drum-machine/releases/download/plugin-latest/install.ps1 | iex</pre><button>copy</button></div>
   <ul>
-    <li>The VST3 goes to <code>%LOCALAPPDATA%\Programs\Common\VST3</code>. The app goes to <code>%LOCALAPPDATA%\Programs\fm-dm</code>, and it's added to the Start menu.</li>
+    <li>The VST3 goes to <code>C:\Program Files\Common Files\VST3</code>, which every DAW scans. The app goes to <code>%LOCALAPPDATA%\Programs\fm-dm</code>, and it's added to the Start menu.</li>
     <li>Windows 10 and 11, 64-bit. It uses Microsoft Edge WebView2, which Windows already includes.</li>
-    <li>If your DAW doesn't scan that folder, add it to the DAW's VST3 paths.</li>
+    <li>Then rescan plug-ins in your DAW. In FL Studio: <i>Options &gt; Manage plugins &gt; Find more plugins</i>.</li>
+    <li>From the zip by hand: copy the whole <code>fm-dm.vst3</code> folder into <code>C:\Program Files\Common Files\VST3</code>.</li>
   </ul>
 
   <h2>Linux</h2>

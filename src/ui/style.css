@@ -272,4 +272,5 @@ input[type=text], input[type=search] { background: transparent; border: 2px soli
 .vis .cell i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: var(--ink); }
 .vis .cell.neg i { bottom: auto; top: 0; }
 .vis .vfoot { margin-top: 8px; font-size: 16px; line-height: 1.1; opacity: .7; }
+.vis .b.armed { background: var(--spot); border-color: var(--spot); color: var(--lcd); }
 .vis .vname { min-width: 170px; text-align: center; font-size: 20px; white-space: nowrap; }

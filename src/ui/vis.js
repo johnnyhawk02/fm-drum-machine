@@ -401,11 +401,20 @@ function visBuild() {
     drawOpt();
   });
   auto.title = 'step to the next preset by itself (holds each for the morph time, at least 4 s)';
-  const drawOpt = () => {
+  let drawOpt = () => {
     mt.textContent = visOpt.morph ? `morph ${visOpt.morph}s` : 'morph off';
     auto.classList.toggle('on', visOpt.auto);
     visOptSave();
   };
+  // load: what a preset brings in when you step to it: both, only the sound, or only the picture
+  const ld = btn('', 'sm', () => {
+    visOpt.load = VIS_LOADS[(VIS_LOADS.indexOf(visOpt.load) + 1) % VIS_LOADS.length];
+    drawOpt();
+  });
+  ld.title = 'what loading a preset changes: sound and visuals, sound only, or visuals only';
+  const drawLd = () => (ld.textContent = `load ${visOpt.load === 'both' ? 'sound + visuals' : visOpt.load}`);
+  const drawOpt0 = drawOpt;
+  drawOpt = () => { drawOpt0(); drawLd(); };
   drawOpt();
   // clear: removes all your saved visualiser presets (the factory ones are built in and stay); press twice to confirm
   let clrT = 0;
@@ -430,8 +439,26 @@ function visBuild() {
   ex.title = 'download your visualiser presets (picture + sound) as a file, to make factory presets';
   sv.title = 'save the picture and the sound as a new preset';
   bar.append(btn('randomise picture', 'sm', () => { visMorph = null; visRandomise(); }), btn('randomise everything', 'sm', () => { visMorph = null; runRandom('all'); }),
-    sv, btn('‹', 'sm', () => visStep(-1)), name, btn('›', 'sm', () => visStep(1)), mt, auto, del, clr, ex, mbtn, btn('✕', 'sm', visClose));
-  visEl.append(bar, mat);
+    sv, btn('‹', 'sm', () => visStep(-1)), name, btn('›', 'sm', () => visStep(1)), mt, auto, ld, del, clr, ex, mbtn, btn('✕', 'sm', visClose));
+  // second row: transport, tempo, swing and the main app's sound and beat randomisers
+  const bar2 = h('div', 'vbar vbar2');
+  const play = btn('', 'sm', async () => { await togglePlay(); drawPlay(); });
+  const drawPlay = () => { play.textContent = S.playing ? '■ stop' : '▶ play'; play.classList.toggle('on', S.playing); };
+  drawPlay();
+  visEl._drawPlay = drawPlay;
+  bar2.append(play, btn('−', 'sm', () => visNudge('bpm', -1)), visDragVal('bpm', (x) => `${Math.round(x)} bpm`, 0.5), btn('+', 'sm', () => visNudge('bpm', 1)),
+    visDragVal('swDepth', (x) => `swing ${Math.round(x * 100)}%`, 0.005));
+  for (const n of R_ORDER) {
+    if (n === 'everything') continue;
+    const b = btn(RND[n].label, 'sm', () => { visMorph = null; runRandom(n); });
+    b.title = `randomise ${RND[n].label} (the same as in the main randomise list)`;
+    bar2.append(b);
+  }
+  const un = btn('undo', 'sm', () => { visMorph = null; undo(); });
+  bar2.append(un);
+  const bars = h('div', 'vbars');
+  bars.append(bar, bar2);
+  visEl.append(bars, mat);
 
   // matrix: a row per visual control (base bar with its live value, then one cell per drum)
   const head = h('div', 'vrow vhead', `<span class="vn"></span><span></span>${VIS_SRC.map((s) => `<span class="vc">${s}</span>`).join('')}`);
@@ -547,8 +574,10 @@ function visFit() {
   const k = Math.min(dpr, Math.sqrt(2.2e6 / Math.max(1, w * hgt))); // about 1920x1080 at most
   visR.resize(Math.max(2, Math.round(w * k)), Math.max(2, Math.round(hgt * k)));
   const sc = Math.min(1.25, Math.max(0.55, stageScale));
-  visEl.querySelector('.vbar').style.transform = `scale(${sc})`;
-  visEl.querySelector('.vmat').style.transform = `scale(${sc})`;
+  const bars = visEl.querySelector('.vbars'), mat = visEl.querySelector('.vmat');
+  bars.style.transform = mat.style.transform = `scale(${sc})`;
+  mat.style.top = Math.round(14 + (bars.offsetHeight || 96) * sc + 10) + 'px'; // just under both bars
+  mat.style.maxHeight = Math.round((hgt - parseFloat(mat.style.top) - 14) / sc) + 'px';
 }
 function visFrame(now) {
   if (!visOn) return;
@@ -573,6 +602,7 @@ function visFrame(now) {
   const u = { flowT: visFlow, uFlash: visEnv[6] * visSm[VIDX.lFlash] };
   for (let i = 0; i < VPK.length; i++) u[VPK[i].k] = visSm[i];
   visR.draw(u, dt);
+  if ((visTick & 15) === 0) visDrawVals(); // tempo, swing and play can change elsewhere (randomise, presets, space bar)
   // live value on each base bar
   if ((visTick++ & 3) === 0 && !visEl.querySelector('.vmat').hidden) {
     for (let i = 0; i < VPK.length; i++) {
@@ -634,9 +664,39 @@ document.addEventListener('fullscreenchange', () => {
 // parameters glide geometrically), switches, the rhythm and knob sequences change halfway. auto steps on by itself.
 const VIS_LS = 'fmdm.visPresets';
 const VIS_MORPHS = [0, 1, 2, 4, 8, 16, 32];
+const VIS_LOADS = ['both', 'sound', 'visuals'];
 const visOpt = (() => {
-  try { return { morph: 4, auto: false, ...JSON.parse(localStorage.getItem('fmdm.visOpt') || '{}') }; } catch { return { morph: 4, auto: false }; }
+  let o;
+  try { o = { morph: 4, auto: false, load: 'both', ...JSON.parse(localStorage.getItem('fmdm.visOpt') || '{}') }; } catch { o = { morph: 4, auto: false, load: 'both' }; }
+  if (!VIS_LOADS.includes(o.load)) o.load = 'both';
+  return o;
 })();
+// tempo and swing on the visualiser bar: a value you drag up or down (double-click resets), and − + nudges
+function visNudge(id, d) {
+  const g = NV_ + M[id];
+  setG(g, getG(g) + d);
+  visDrawVals();
+}
+function visDragVal(id, fmt, per) {
+  const g = NV_ + M[id];
+  const b = h('span', 'vval');
+  b.title = 'drag up or down; double-click resets';
+  b._draw = () => (b.textContent = fmt(getG(g)));
+  b._draw();
+  b.addEventListener('pointerdown', (e) => {
+    b.setPointerCapture(e.pointerId);
+    const y0 = e.clientY, x0 = getG(g);
+    b.onpointermove = (ev) => { setG(g, x0 + ((y0 - ev.clientY) / stageScale) * per); b._draw(); };
+    b.onpointerup = b.onpointercancel = () => (b.onpointermove = null);
+  });
+  b.addEventListener('dblclick', () => { setG(g, specOf(g).def); b._draw(); });
+  return b;
+}
+function visDrawVals() {
+  if (!visEl) return;
+  visEl.querySelectorAll('.vval').forEach((b) => b._draw());
+  visEl._drawPlay?.();
+}
 const visOptSave = () => { try { localStorage.setItem('fmdm.visOpt', JSON.stringify(visOpt)); } catch {} };
 // yours (saved in this browser) first, then the factory ones (presets/vis/*.json, built in)
 function visMine() {
@@ -708,7 +768,8 @@ function visStep(dir) {
   visShowName(sc.name);
   visHold = 0;
   pushUndo();
-  visMorph = { t0: performance.now(), dur: visOpt.morph * 1000, vFrom: visClone(vis), vTo: visFix(sc.vis) || visClone(vis), sFrom: S.base.slice(), sTo: visSoundBase(sc.sound), pr: sc.sound, half: false };
+  const snd = visOpt.load !== 'visuals', pic = visOpt.load !== 'sound';
+  visMorph = { t0: performance.now(), dur: visOpt.morph * 1000, vFrom: visClone(vis), vTo: (pic && visFix(sc.vis)) || visClone(vis), sFrom: S.base.slice(), sTo: snd ? visSoundBase(sc.sound) : S.base.slice(), pr: snd ? sc.sound : null, half: !snd };
   visMorphTick(visMorph.t0);
 }
 function visLerp(a, b, x, curve) {
@@ -731,7 +792,7 @@ function visMorphTick(now) {
   vis.depth = m.vFrom.depth + (m.vTo.depth - m.vFrom.depth) * e;
   vis.slew = m.vFrom.slew + (m.vTo.slew - m.vFrom.slew) * e;
   // sound: every parameter glides, sent in one message about 30 times a second
-  if (!m.lastSend || now - m.lastSend > 33 || x >= 1) {
+  if (m.pr && (!m.lastSend || now - m.lastSend > 33 || x >= 1)) {
     m.lastSend = now;
     for (let g = 0; g < m.sTo.length; g++) S.base[g] = visLerp(m.sFrom[g], m.sTo[g], e, specOf(g).curve);
     post({ t: 'all', base: S.base.slice() });
@@ -758,8 +819,8 @@ function visMorphTick(now) {
   }
   if (x >= 1) {
     visMorph = null;
-    if (m.pr.perf) m.pr.perf.forEach((k, i) => k !== S.perf[i] && setPerf(i, k));
-    curPreset = m.pr.name;
+    if (m.pr?.perf) m.pr.perf.forEach((k, i) => k !== S.perf[i] && setPerf(i, k));
+    if (m.pr) curPreset = m.pr.name;
     visSave();
     visSync();
     redrawAll();

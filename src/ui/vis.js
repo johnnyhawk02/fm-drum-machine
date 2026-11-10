@@ -3,8 +3,9 @@
 // drums as sources in place of the LFOs and the audio input: each drum's envelope, from its level meter. The
 // fm/dm logo sits in the picture: the drums (and everything in the matrix) move it, it follows the picture's
 // geometry and imprints on its pattern, and every few bars it flashes into the feedback trails; that flash is
-// the seventh matrix source (logo), so it can move everything else too. The goon artwork sits above the centre
-// (the logo below it) with its own controls and its own flash, the eighth matrix source (goon).
+// the seventh matrix source (logo), so it can move everything else too. The goon artwork has its own controls
+// and its own flash, the eighth matrix source (goon). Randomise picture shows one of the two, in the centre; if
+// both are turned up by hand the goon sits above the centre and the logo below it.
 // Randomise picture always leaves the mirror on; randomise everything randomises the sounds,
 // rhythm, fx, mix, xmod and motion. Esc or ✕ closes; Enter randomises the picture.
 
@@ -50,15 +51,15 @@ const VIS_PARAMS = [
   { k: 'lFade', n: 'flash length', min: 0.05, max: 1, d: 0.4 },
   // the goon artwork, above the centre: the same controls as the logo
   { g: 'goon' },
-  { k: 'gAmt', n: 'goon level', min: 0, max: 1, d: 1 },
+  { k: 'gAmt', n: 'goon level', min: 0, max: 1, d: 0 },
   { k: 'gSize', n: 'goon size', min: 0.1, max: 1.6, d: 0.42 },
   { k: 'gRot', n: 'goon rotate', min: -3.1416, max: 3.1416, d: 0 },
   { k: 'gHue', n: 'goon hue', min: 0, max: 1, d: 0.05, wrap: true },
   { k: 'gSat', n: 'goon saturation', min: 0, max: 1, d: 0 },
   { k: 'gBright', n: 'goon brightness', min: 0, max: 2, d: 1 },
   { k: 'gWarp', n: 'goon follows', min: 0, max: 1, d: 0.15 },
-  { k: 'gImprint', n: 'goon imprint', min: 0, max: 1, d: 0.25 },
-  { k: 'gFlash', n: 'goon flash', min: 0, max: 1, d: 0.8 },
+  { k: 'gImprint', n: 'goon imprint', min: 0, max: 1, d: 0 },
+  { k: 'gFlash', n: 'goon flash', min: 0, max: 1, d: 0 },
   { k: 'gEvery', n: 'goon flash every (bars)', min: 1, max: 16, d: 4 },
   { k: 'gFade', n: 'goon flash length', min: 0.05, max: 1, d: 0.4 },
 ];
@@ -109,6 +110,7 @@ function visSave() {
 // mirror is always up after a randomise: at least 3 segments, and drums only ever add more
 function visRandomise() {
   const r = Math.random;
+  const off = r() < 0.5 ? 'l' : 'g'; // one image each time: the other one is hidden, and nothing moves it
   const base = VPK.map((P) => {
     const span = P.max - P.min;
     if (P.k === 'fb') return 0.3 + r() * 0.55;
@@ -118,6 +120,7 @@ function visRandomise() {
     // the logo: solid, with subtle effects every time (mid size, mostly upright, gentle follow/imprint/flash)
     // (the goon gets the same treatment)
     const q = VIS_IMGS.includes(P.k[0]) ? P.k.slice(1) : '';
+    if (P.k[0] === off && (q === 'Amt' || q === 'Flash' || q === 'Imprint')) return 0;
     if (q === 'Amt') return 1;
     if (q === 'Size') return 0.3 + r() * 0.3;
     if (q === 'Rot') return r() < 0.8 ? 0 : (r() - 0.5) * 0.5;
@@ -148,6 +151,7 @@ function visRandomise() {
     if (k === 'flow' || k === 'zoom' || k === 'rot') a *= 0.5; // big jumps here look like glitches
     if (visImgKey(k) || s >= VIS_IMG) a *= 0.35; // drums move the images gently, and their flashes move the picture gently
     if (solid(k)) a = 0; // the images stay solid
+    if (k[0] === off && visImgKey(k)) a = 0;
     mod[d][s] = Math.round(a * 100) / 100;
   }
   vis = { base, mod, depth: vis.depth, slew: vis.slew };
@@ -182,7 +186,7 @@ in vec2 a; out vec2 vUv; void main(){ vUv = a*.5+.5; gl_Position = vec4(a,0.,1.)
 // the images: alpha as a mask, sharpened (the artwork is small), sized in screen heights; the logo sits just
 // below the centre and the goon just above it
 const VIS_LOGO_GLSL = `
-uniform sampler2D uLogo, uGoon; uniform float uLogoAsp, uGoonAsp, uFlash, uFlashG;
+uniform sampler2D uLogo, uGoon; uniform float uLogoAsp, uGoonAsp, uFlash, uFlashG, uBoth;
 uniform float lAmt, lSize, lRot, lHue, lSat, lBright, lImprint, lWarp;
 uniform float gAmt, gSize, gRot, gHue, gSat, gBright, gImprint, gWarp;
 vec3 lhsv(vec3 c){ vec3 p=abs(fract(c.xxx+vec3(1.,2./3.,1./3.))*6.-3.); return c.z*mix(vec3(1.), clamp(p-1.,0.,1.), c.y); }
@@ -198,8 +202,9 @@ const float GAP = .05;
 // following the picture's zoom and mirror grows each image on screen (the mirror folds it back on itself), so
 // the gap allows for it
 float grow(float w){ return mix(1., 1./max(zoom, .3), w) * (1. + 1.6*w); }
-vec2 logoAt(){ return vec2(0., -GAP - .5*lSize/uLogoAsp*grow(lWarp)); }
-vec2 goonAt(){ return vec2(0., GAP + .5*gSize/uGoonAsp*grow(gWarp)); }
+// uBoth: 1 when both images show (then they move apart), 0 when only one does (it sits in the centre)
+vec2 logoAt(){ return vec2(0., -GAP - .5*lSize/uLogoAsp*grow(lWarp)) * uBoth; }
+vec2 goonAt(){ return vec2(0., GAP + .5*gSize/uGoonAsp*grow(gWarp)) * uBoth; }
 vec3 logoCol(){ return lhsv(vec3(lHue, lSat, 1.)) * lBright; }
 vec3 goonCol(){ return lhsv(vec3(gHue, gSat, 1.)) * gBright; }`;
 const VIS_FS_SCENE = `#version 300 es
@@ -653,7 +658,8 @@ function visFrame(now) {
     visSm[i] += a * d;
   }
   visFlow += visSm[VIDX.flow] * dt;
-  const u = { flowT: visFlow, uFlash: visEnv[6] * visSm[VIDX.lFlash], uFlashG: visEnv[7] * visSm[VIDX.gFlash] };
+  const shows = (c) => clamp((Math.max(0, visSm[VIDX[c + 'Amt']]) + Math.max(0, visSm[VIDX[c + 'Flash']]) + Math.max(0, visSm[VIDX[c + 'Imprint']])) * 10, 0, 1);
+  const u = { flowT: visFlow, uFlash: visEnv[6] * visSm[VIDX.lFlash], uFlashG: visEnv[7] * visSm[VIDX.gFlash], uBoth: Math.min(shows('l'), shows('g')) };
   for (let i = 0; i < VPK.length; i++) u[VPK[i].k] = visSm[i];
   visR.draw(u, dt);
   if ((visTick & 15) === 0) visDrawVals(); // tempo, swing and play can change elsewhere (randomise, presets, space bar)

@@ -1,8 +1,8 @@
 // fm/dm — visualiser: click the logo for a full-screen feedback-shader picture. It is Johnny's Slow Signal video
 // synth (same scene, feedback and signal shaders, same visual controls), but its patch matrix takes the six
 // drums as sources in place of the LFOs and the audio input: each drum's envelope, from its level meter.
-// Randomise picture always leaves the mirror on; randomise everything is the main randomise-all for the sounds
-// (same as key 1). Esc or ✕ closes; Enter randomises the picture.
+// Randomise picture always leaves the mirror on; randomise everything randomises the sounds,
+// rhythm, fx, mix, xmod and motion. Esc or ✕ closes; Enter randomises the picture.
 
 const VIS_SRC = SHORT; // dr1 dr2 dr3 sn cy hh
 const VIS_N = VIS_SRC.length;
@@ -288,7 +288,7 @@ function visBuild() {
     mat.hidden = !mat.hidden;
     mbtn.classList.toggle('on', !mat.hidden);
   });
-  bar.append(btn('randomise picture', 'sm', visRandomise), btn('randomise everything', 'sm', () => runRandom('everything')), mbtn, btn('✕', 'sm', visClose));
+  bar.append(btn('randomise picture', 'sm', visRandomise), btn('randomise everything', 'sm', () => runRandom('all')), mbtn, btn('✕', 'sm', visClose));
   visEl.append(bar, mat);
 
   // matrix: a row per visual control (base bar with its live value, then one cell per drum)

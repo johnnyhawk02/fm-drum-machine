@@ -1,10 +1,13 @@
 // fm/dm — visualiser: click the logo for a full-screen feedback-shader picture. It is Johnny's Slow Signal video
 // synth (same scene, feedback and signal shaders, same visual controls), but its patch matrix takes the six
-// drums as sources in place of the LFOs and the audio input: each drum's envelope, from its level meter.
+// drums as sources in place of the LFOs and the audio input: each drum's envelope, from its level meter. The
+// fm/dm logo sits in the picture: the drums (and everything in the matrix) move it, it follows the picture's
+// geometry and imprints on its pattern, and every few bars it flashes into the feedback trails; that flash is
+// the seventh matrix source (logo), so it can move everything else too.
 // Randomise picture always leaves the mirror on; randomise everything randomises the sounds,
 // rhythm, fx, mix, xmod and motion. Esc or ✕ closes; Enter randomises the picture.
 
-const VIS_SRC = SHORT; // dr1 dr2 dr3 sn cy hh
+const VIS_SRC = [...SHORT, 'logo']; // dr1 dr2 dr3 sn cy hh, and the logo flash
 const VIS_N = VIS_SRC.length;
 const VIS_PARAMS = [
   { g: 'colour' },
@@ -30,6 +33,20 @@ const VIS_PARAMS = [
   { g: 'signal' },
   { k: 'chroma', n: 'chroma split', min: 0, max: 0.03, d: 0.004 },
   { k: 'scan', n: 'scanlines', min: 0, max: 1, d: 0.15 },
+  // the fm/dm logo, drawn over the picture; its feedback amount is how much of it goes into the trails
+  { g: 'logo' },
+  { k: 'lAmt', n: 'logo level', min: 0, max: 1, d: 0.7 },
+  { k: 'lSize', n: 'logo size', min: 0.1, max: 1.6, d: 0.55 },
+  { k: 'lRot', n: 'logo rotate', min: -3.1416, max: 3.1416, d: 0 },
+  { k: 'lHue', n: 'logo hue', min: 0, max: 1, d: 0.05, wrap: true },
+  { k: 'lSat', n: 'logo saturation', min: 0, max: 1, d: 0 },
+  { k: 'lBright', n: 'logo brightness', min: 0, max: 2, d: 1 },
+  { k: 'lTrail', n: 'logo feedback', min: 0, max: 1, d: 0.35 },
+  { k: 'lWarp', n: 'logo follows', min: 0, max: 1, d: 0.3 },
+  { k: 'lImprint', n: 'logo imprint', min: 0, max: 1, d: 0.25 },
+  { k: 'lFlash', n: 'logo flash', min: 0, max: 1, d: 0.8 },
+  { k: 'lEvery', n: 'flash every (bars)', min: 1, max: 16, d: 4 },
+  { k: 'lFade', n: 'flash length', min: 0.05, max: 1, d: 0.4 },
 ];
 const VPK = VIS_PARAMS.filter((p) => p.k);
 const VIDX = Object.fromEntries(VPK.map((p, i) => [p.k, i]));
@@ -43,10 +60,21 @@ function visDefault() {
   set('contour', 4, 0.4); set('scan', 5, 0.4); set('fbRot', 5, 0.2);
   return { base: VPK.map((p) => p.d), mod, depth: 1, slew: 0.03 };
 }
+// a patch saved before a control existed gets that control's default (new controls are added at the end)
+function visFix(p) {
+  if (!p || !p.base || !p.mod || p.base.length > VPK.length || p.mod.length !== p.base.length) return null;
+  if (p.mod.some((row) => row.length > VIS_N)) return null;
+  const base = p.base.slice(), mod = p.mod.map((r) => [...r, ...new Array(VIS_N - r.length).fill(0)]); // the logo source came later
+  for (let i = base.length; i < VPK.length; i++) {
+    base.push(VPK[i].d);
+    mod.push(new Array(VIS_N).fill(0));
+  }
+  return { ...p, base, mod, depth: p.depth ?? 1, slew: p.slew ?? 0.03 };
+}
 function visLoad() {
   try {
-    const p = JSON.parse(localStorage.getItem('fmdm.vis'));
-    if (p && p.base && p.base.length === VPK.length && p.mod && p.mod.length === VPK.length && p.mod[0].length === VIS_N) return p;
+    const p = visFix(JSON.parse(localStorage.getItem('fmdm.vis')));
+    if (p) return p;
   } catch {}
   return visDefault();
 }
@@ -63,6 +91,12 @@ function visRandomise() {
     if (P.k === 'fb') return 0.3 + r() * 0.55;
     if (P.k === 'bright') return 0.8 + r() * 0.5;
     if (P.k === 'chroma') return r() * 0.008;
+    if (P.k === 'lAmt') return 0.5 + r() * 0.45; // the logo stays in
+    if (P.k === 'lSize') return 0.3 + r() * 0.6;
+    if (P.k === 'lRot') return r() < 0.7 ? 0 : (r() - 0.5) * 1.2;
+    if (P.k === 'lSat' || P.k === 'lTrail' || P.k === 'lWarp' || P.k === 'lImprint') return r();
+    if (P.k === 'lFlash') return 0.4 + r() * 0.6;
+    if (P.k === 'lEvery') return [1, 2, 4, 4, 8, 8, 16][Math.floor(r() * 7)];
     if (P.k === 'seg') return 3 + Math.floor(r() * 8);
     if (P.k === 'flow') return (r() < 0.5 ? -1 : 1) * (0.15 + r() * 0.9); // keeps moving between hits
     return P.d + (r() - 0.5) * span * 0.5;
@@ -71,7 +105,7 @@ function visRandomise() {
   const pins = 7 + Math.floor(r() * 7);
   for (let n = 0; n < pins; n++) {
     const d = Math.floor(r() * VPK.length);
-    const s = n < VIS_N ? n : Math.floor(r() * VIS_N); // every drum moves something
+    const s = n < VIS_N ? n : Math.floor(r() * VIS_N); // every drum (and the logo flash) moves something
     const k = VPK[d].k;
     let a = (r() < 0.75 ? 1 : -1) * (0.08 + r() * 0.35);
     if (k === 'seg') a = Math.abs(a);
@@ -89,7 +123,7 @@ const visRef = new Float32Array(VIS_N).fill(0.05);
 function visDrums(dt) {
   const st = S.status;
   const att = 1 - Math.exp(-dt / 0.008), rel = 1 - Math.exp(-dt / 0.16), fall = Math.exp(-dt / 6);
-  for (let v = 0; v < VIS_N; v++) {
+  for (let v = 0; v < 6; v++) {
     const raw = st && st.meters ? st.meters[v] || 0 : 0;
     visRef[v] = Math.max(raw, visRef[v] * fall, 0.05);
     let x = Math.min(1, raw / visRef[v]);
@@ -107,11 +141,25 @@ function visParam(i) {
 // ---- WebGL: scene pass with feedback into ping-pong buffers, then a signal pass (from Slow Signal)
 const VIS_VS = `#version 300 es
 in vec2 a; out vec2 vUv; void main(){ vUv = a*.5+.5; gl_Position = vec4(a,0.,1.); }`;
+// the logo: its alpha as a mask, sharpened (the artwork is small), centred, sized in screen heights
+const VIS_LOGO_GLSL = `
+uniform sampler2D uLogo; uniform float uLogoAsp, lAmt, lSize, lRot, lHue, lSat, lBright, lTrail, lImprint, lWarp, uFlash;
+vec3 lhsv(vec3 c){ vec3 p=abs(fract(c.xxx+vec3(1.,2./3.,1./3.))*6.-3.); return c.z*mix(vec3(1.), clamp(p-1.,0.,1.), c.y); }
+// p: centred screen position (x scaled by the aspect); returns the bare shape, 0..1
+float logoMask(vec2 p){
+  float c=cos(lRot), s=sin(lRot);
+  p = mat2(c,s,-s,c)*p / max(lSize, .01);
+  vec2 t = vec2(p.x + .5, .5 - p.y*uLogoAsp);
+  if (t.x < 0. || t.x > 1. || t.y < 0. || t.y > 1.) return 0.;
+  return smoothstep(.3, .7, texture(uLogo, t).a);
+}
+vec3 logoCol(){ return lhsv(vec3(lHue, lSat, 1.)) * lBright; }`;
 const VIS_FS_SCENE = `#version 300 es
 precision highp float;
 in vec2 vUv; out vec4 o;
 uniform sampler2D uPrev; uniform vec2 uRes; uniform float uDt;
 uniform float hue, spread, sat, bright, zoom, rot, seg, shape, scale, warp, contour, flowT, fb, fbZoom, fbRot, fbHue;
+${VIS_LOGO_GLSL}
 mat2 R(float a){ float c=cos(a), s=sin(a); return mat2(c,-s,s,c); }
 float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
 float noise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
@@ -141,6 +189,15 @@ void main(){
   float n0 = floor(max(seg, 1.)), x = max(seg, 1.)-n0;
   vec3 col = field(p, n0);
   if(x > .001) col = mix(col, field(p, n0+1.), x);
+  // the logo, carried part way through the picture's own zoom, rotation, mirror and warp
+  vec2 p0 = (vUv-.5)*vec2(asp,1.);
+  vec2 pg = p;
+  float nm = floor(seg+.5);
+  if(nm>1.5){ float a=atan(pg.y,pg.x), r=length(pg), s=6.28318/nm; a=mod(a+s*.25,s); a=abs(a-s*.5); pg=vec2(cos(a),sin(a))*r; pg=vec2(pg.y,-pg.x); }
+  pg += warp*.12*vec2(fbm(pg*2.+flowT*.3), fbm(pg*2.+vec2(3.1,.7)-flowT*.3));
+  float lm = logoMask(mix(p0, pg, lWarp));
+  // imprint: inside the logo the pattern turns to its opposite colours
+  col = mix(col, hueShift(col, .5)*1.15, lm*lImprint);
   float k = uDt*60.;
   vec2 fp = (vUv-.5)*vec2(asp,1.);
   fp = R(fbRot*k)*fp / pow(fbZoom, k);
@@ -150,16 +207,20 @@ void main(){
   float fb0 = clamp(fb,0.,.97);
   float f = pow(fb0, k);
   float w = (1.-f)*(1.-.55*fb0)/(1.-fb0);
-  o = vec4(clamp(col*w + prev*f, 0., 1.), 1.);
+  vec3 outc = clamp(col*w + prev*f, 0., 1.);
+  outc = mix(outc, logoCol(), clamp(lm*(lAmt*lTrail + uFlash), 0., 1.)); // into the trails, and the flash
+  o = vec4(outc, 1.);
 }`;
 const VIS_FS_POST = `#version 300 es
 precision highp float;
 in vec2 vUv; out vec4 o;
-uniform sampler2D uSrc; uniform float chroma, scan, uLines;
+uniform sampler2D uSrc; uniform vec2 uRes; uniform float chroma, scan, uLines;
+${VIS_LOGO_GLSL}
 void main(){
   vec2 d = (vUv-.5)*chroma*4.;
   vec3 c = vec3(texture(uSrc, vUv+d).r, texture(uSrc, vUv).g, texture(uSrc, vUv-d).b);
   float l = .5+.5*sin(vUv.y*3.14159*uLines);
+  c = mix(c, logoCol(), logoMask((vUv-.5)*vec2(uRes.x/uRes.y,1.))*lAmt*(1.-lTrail));
   c *= 1. - scan*.55*l;
   vec2 w = vUv-.5; c *= 1. - dot(w,w)*.55;
   o = vec4(c, 1.);
@@ -173,6 +234,22 @@ class VisRenderer {
     this.half = !!gl.getExtension('EXT_color_buffer_float');
     this.scene = this.prog(VIS_FS_SCENE);
     this.post = this.prog(VIS_FS_POST);
+    // the logo texture: blank until the image has loaded
+    this.logo = gl.createTexture();
+    this.logoAsp = 325 / 120;
+    gl.bindTexture(gl.TEXTURE_2D, this.logo);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+    const img = new Image();
+    img.onload = () => {
+      gl.bindTexture(gl.TEXTURE_2D, this.logo);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+      this.logoAsp = img.width / img.height;
+    };
+    img.src = LOGO_URL;
     const b = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, b);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
@@ -237,6 +314,14 @@ class VisRenderer {
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
+  bindLogo(P) {
+    const gl = this.gl;
+    gl.activeTexture(gl.TEXTURE1);
+    gl.bindTexture(gl.TEXTURE_2D, this.logo);
+    gl.uniform1i(P.loc.uLogo, 1);
+    gl.uniform1f(P.loc.uLogoAsp, this.logoAsp);
+    gl.activeTexture(gl.TEXTURE0);
+  }
   draw(u, dt) {
     const gl = this.gl, nx = 1 - this.cur;
     gl.bindVertexArray(this.vao);
@@ -250,14 +335,16 @@ class VisRenderer {
     gl.uniform2f(P.loc.uRes, this.w, this.h);
     gl.uniform1f(P.loc.uDt, Math.min(dt, 0.1));
     for (const k in P.loc) if (k in u) gl.uniform1f(P.loc[k], u[k]);
+    this.bindLogo(P);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     P = this.post;
     gl.useProgram(P.p);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.bindTexture(gl.TEXTURE_2D, this.tex[nx]);
     gl.uniform1i(P.loc.uSrc, 0);
-    gl.uniform1f(P.loc.chroma, u.chroma);
-    gl.uniform1f(P.loc.scan, u.scan);
+    gl.uniform2f(P.loc.uRes, this.w, this.h);
+    for (const k in P.loc) if (k in u) gl.uniform1f(P.loc[k], u[k]);
+    this.bindLogo(P);
     gl.uniform1f(P.loc.uLines, this.h / 2);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     this.cur = nx;
@@ -266,7 +353,7 @@ class VisRenderer {
 
 // ---- overlay: the picture, a small bar (randomise, matrix, close) and the matrix panel, both in the LCD look
 let visEl = null, visR = null, visOn = false, visRaf = 0, visLast = 0, visIdle = 0, visTick = 0;
-let visFlow = 0;
+let visFlow = 0, visFlashPh = 0;
 const visSm = new Float64Array(VPK.length);
 const visRows = [];
 
@@ -439,6 +526,11 @@ function visFrame(now) {
   const dt = Math.min(0.1, Math.max(0.001, (now - visLast) / 1000));
   visLast = now;
   visDrums(dt);
+  // logo flash: every n bars at the current tempo, a sin² bump lasting the flash length (a share of the gap)
+  const bpm = S.base[NV_ + M.bpm] || 120;
+  visFlashPh = (visFlashPh + (dt * bpm) / 240 / Math.max(1, visSm[VIDX.lEvery])) % 1;
+  const fl = Math.max(0.05, visSm[VIDX.lFade]);
+  visEnv[6] = visFlashPh < fl ? Math.sin((Math.PI * visFlashPh) / fl) ** 2 : 0;
   if (visMorph) visMorphTick(now);
   else if (visOpt.auto && (visHold += dt) >= Math.max(4, visOpt.morph)) visStep(1);
   const a = vis.slew > 0 ? 1 - Math.exp(-dt / vis.slew) : 1;
@@ -448,7 +540,7 @@ function visFrame(now) {
     visSm[i] += a * d;
   }
   visFlow += visSm[VIDX.flow] * dt;
-  const u = { flowT: visFlow };
+  const u = { flowT: visFlow, uFlash: visEnv[6] * visSm[VIDX.lFlash] };
   for (let i = 0; i < VPK.length; i++) u[VPK[i].k] = visSm[i];
   visR.draw(u, dt);
   // live value on each base bar
@@ -579,7 +671,7 @@ function visStep(dir) {
   visShowName(sc.name);
   visHold = 0;
   pushUndo();
-  visMorph = { t0: performance.now(), dur: visOpt.morph * 1000, vFrom: visClone(vis), vTo: sc.vis, sFrom: S.base.slice(), sTo: visSoundBase(sc.sound), pr: sc.sound, half: false };
+  visMorph = { t0: performance.now(), dur: visOpt.morph * 1000, vFrom: visClone(vis), vTo: visFix(sc.vis) || visClone(vis), sFrom: S.base.slice(), sTo: visSoundBase(sc.sound), pr: sc.sound, half: false };
   visMorphTick(visMorph.t0);
 }
 function visLerp(a, b, x, curve) {

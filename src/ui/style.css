@@ -258,9 +258,9 @@ input[type=text], input[type=search] { background: transparent; border: 2px soli
 .vis.idle .vbar { display: none; }
 .vis .vbar { position: absolute; left: 14px; top: 14px; display: flex; align-items: center; gap: 6px; padding: 6px; background: var(--lcd);
   border: 2px solid var(--ink); border-radius: 8px; transform-origin: 0 0; }
-.vis .vmat { position: absolute; right: 14px; top: 14px; width: 470px; max-height: calc(100vh - 28px); overflow: auto;
+.vis .vmat { position: absolute; right: 14px; top: 70px; width: 505px; max-height: calc(100vh - 84px); overflow: auto;
   background: var(--lcd); border: 2px solid var(--ink); border-radius: 12px; padding: 8px 12px 10px; transform-origin: 100% 0; font-size: 19px; }
-.vis .vrow { display: grid; grid-template-columns: 150px 1fr repeat(6, 30px); gap: 5px; align-items: center; height: 26px; }
+.vis .vrow { display: grid; grid-template-columns: 150px 1fr repeat(7, 30px); gap: 5px; align-items: center; height: 23px; }
 .vis .vhead { height: 22px; text-transform: uppercase; letter-spacing: .06em; }
 .vis .vhead .vc { border: 0; text-align: center; }
 .vis .vgrp { text-transform: uppercase; letter-spacing: .14em; border-top: 2px solid var(--ink); margin-top: 6px; padding-top: 2px; font-size: 17px; }
@@ -268,7 +268,7 @@ input[type=text], input[type=search] { background: transparent; border: 2px soli
 .vis .vb { position: relative; height: 14px; border: 1.5px solid var(--ink); border-radius: 2px; cursor: ew-resize; touch-action: none; }
 .vis .vb i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--dim); }
 .vis .vb b { position: absolute; top: -3px; bottom: -3px; width: 3px; margin-left: -1.5px; background: var(--spot); }
-.vis .cell { position: relative; height: 20px; border: 1.5px solid var(--ink); border-radius: 2px; cursor: ns-resize; touch-action: none; overflow: hidden; }
+.vis .cell { position: relative; height: 18px; border: 1.5px solid var(--ink); border-radius: 2px; cursor: ns-resize; touch-action: none; overflow: hidden; }
 .vis .cell i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: var(--ink); }
 .vis .cell.neg i { bottom: auto; top: 0; }
 .vis .vfoot { margin-top: 8px; font-size: 16px; line-height: 1.1; opacity: .7; }

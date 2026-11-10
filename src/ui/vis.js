@@ -96,12 +96,17 @@ function visRandomise() {
     if (P.k === 'fb') return 0.3 + r() * 0.55;
     if (P.k === 'bright') return 0.8 + r() * 0.5;
     if (P.k === 'chroma') return r() * 0.008;
-    if (P.k === 'lAmt') return 0.5 + r() * 0.45; // the logo stays in
-    if (P.k === 'lSize') return 0.3 + r() * 0.6;
-    if (P.k === 'lRot') return r() < 0.7 ? 0 : (r() - 0.5) * 1.2;
-    if (P.k === 'lSat' || P.k === 'lWarp' || P.k === 'lImprint') return r();
-    if (P.k === 'lFlash') return 0.4 + r() * 0.6;
-    if (P.k === 'lEvery') return [1, 2, 4, 4, 8, 8, 16][Math.floor(r() * 7)];
+    // the logo: subtle every time (faint, mid size, mostly upright, gentle follow/imprint/flash)
+    if (P.k === 'lAmt') return 0.25 + r() * 0.3;
+    if (P.k === 'lSize') return 0.35 + r() * 0.35;
+    if (P.k === 'lRot') return r() < 0.8 ? 0 : (r() - 0.5) * 0.5;
+    if (P.k === 'lSat') return r() * 0.5;
+    if (P.k === 'lBright') return 0.6 + r() * 0.4;
+    if (P.k === 'lWarp') return r() * 0.35;
+    if (P.k === 'lImprint') return r() * 0.2;
+    if (P.k === 'lFlash') return 0.15 + r() * 0.3;
+    if (P.k === 'lEvery') return [4, 8, 8, 16][Math.floor(r() * 4)];
+    if (P.k === 'lFade') return 0.2 + r() * 0.3;
     if (P.k === 'seg') return 3 + Math.floor(r() * 8);
     if (P.k === 'flow') return (r() < 0.5 ? -1 : 1) * (0.15 + r() * 0.9); // keeps moving between hits
     return P.d + (r() - 0.5) * span * 0.5;
@@ -115,6 +120,8 @@ function visRandomise() {
     let a = (r() < 0.75 ? 1 : -1) * (0.08 + r() * 0.35);
     if (k === 'seg') a = Math.abs(a);
     if (k === 'flow' || k === 'zoom' || k === 'rot') a *= 0.5; // big jumps here look like glitches
+    if (k[0] === 'l' && k !== 'lEvery' || s === VIS_N - 1) a *= 0.35; // drums move the logo gently, and the logo flash moves the picture gently
+    if (k === 'lEvery') a = 0;
     mod[d][s] = Math.round(a * 100) / 100;
   }
   vis = { base, mod, depth: vis.depth, slew: vis.slew };

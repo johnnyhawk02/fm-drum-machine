@@ -788,10 +788,15 @@ const visOptSave = () => { try { localStorage.setItem('fmdm.visOpt', JSON.string
 function visMine() {
   try { return JSON.parse(localStorage.getItem(VIS_LS) || '[]'); } catch { return []; }
 }
+// factory presets you deleted (by name), kept in this browser
+const VIS_HID = 'fmdm.visHidden';
+function visHidden() {
+  try { return new Set(JSON.parse(localStorage.getItem(VIS_HID) || '[]')); } catch { return new Set(); }
+}
 function visScenes() {
   const mine = visMine();
-  const names = new Set(mine.map((p) => p.name));
-  return [...mine, ...BUILTIN_VIS.filter((p) => !names.has(p.name)).map((p) => ({ ...p, builtin: true }))];
+  const names = new Set(mine.map((p) => p.name)), hid = visHidden();
+  return [...mine, ...BUILTIN_VIS.filter((p) => !names.has(p.name) && !hid.has(p.name)).map((p) => ({ ...p, builtin: true }))];
 }
 // downloads your presets in the same format as presets/vis/*.json, so a file can be dropped in there as factory presets
 function visExport() {
@@ -822,9 +827,15 @@ function visDeleteScene() {
   const list = visScenes();
   const sc = list[visCur];
   if (!sc) return;
-  if (sc.builtin) return toast('factory presets cannot be deleted');
-  const mine = visMine().filter((p) => p.name !== sc.name);
-  try { localStorage.setItem(VIS_LS, JSON.stringify(mine)); } catch {}
+  if (sc.builtin) {
+    // factory presets can be deleted too (for now): hidden in this browser
+    const hid = visHidden();
+    hid.add(sc.name);
+    try { localStorage.setItem(VIS_HID, JSON.stringify([...hid])); } catch {}
+  } else {
+    const mine = visMine().filter((p) => p.name !== sc.name);
+    try { localStorage.setItem(VIS_LS, JSON.stringify(mine)); } catch {}
+  }
   const now = visScenes();
   visCur = Math.min(visCur, now.length - 1);
   visShowName(visCur >= 0 ? now[visCur].name : '');

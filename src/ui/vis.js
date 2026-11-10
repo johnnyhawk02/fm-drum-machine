@@ -195,10 +195,24 @@ vec3 field(vec2 p, float n){
   v = mix(v, sin(v*(2.+contour*22.)), smoothstep(0.,.6,contour));
   return hsv(vec3(fract(hue + v*spread), sat, (.5+.5*v)*(.35+.65*smoothstep(-.9,.9,v)))) * bright;
 }
-// the mirror fold for the logo: each wedge points up, so the top of the logo meets itself round the centre
-vec2 logoFold(vec2 q, float n){
-  if(n>1.5){ float a=atan(q.y,q.x), r=length(q), s=6.28318/n; a=mod(a+s*.25,s); a=abs(a-s*.5); q=vec2(cos(a),sin(a))*r; q=vec2(q.y,-q.x); }
-  return q + warp*lWarp*.12*vec2(fbm(q*2.+flowT*.3), fbm(q*2.+vec2(3.1,.7)-flowT*.3));
+// the logo before the mirror: with the mirror up, one whole logo sits in each segment, out from the centre and sized
+// to fit it, so the kaleidoscope turns it into a ring of logos; with the mirror down it sits in the middle
+float logoAt(vec2 q, float n){
+  float sz = lSize;
+  if(n>1.5){
+    float s = 6.28318/n, a = atan(q.x, q.y), r = length(q);
+    a = mod(a + s*.5, s) - s*.5; // into the segment pointing up
+    q = vec2(sin(a), cos(a))*r;
+    float hw = .5/tan(s*.5), hh = .5/max(uLogoAsp, .1); // centre distance per unit size so the logo fits the segment
+    sz = min(lSize, .3/(hw + hh));
+    q.y -= sz*(hw + hh) + .02;
+  }
+  q += warp*lWarp*.12*vec2(fbm(q*2.+flowT*.3), fbm(q*2.+vec2(3.1,.7)-flowT*.3));
+  float c=cos(lRot), sn=sin(lRot);
+  q = mat2(c,sn,-sn,c)*q / max(sz, .01);
+  vec2 t = vec2(q.x + .5, .5 - q.y*uLogoAsp);
+  if (t.x < 0. || t.x > 1. || t.y < 0. || t.y > 1.) return 0.;
+  return smoothstep(.3, .7, texture(uLogo, t).a);
 }
 void main(){
   float asp = uRes.x/uRes.y;
@@ -211,8 +225,7 @@ void main(){
   // then is always folded by the mirror (blending between segment counts like the pattern), so it repeats round the kaleidoscope
   vec2 p0 = (vUv-.5)*vec2(asp,1.);
   vec2 pl = mix(p0, p, lWarp);
-  float lm = logoMask(logoFold(pl, n0));
-  if(x > .001) lm = mix(lm, logoMask(logoFold(pl, n0+1.)), x);
+  float lm = logoAt(pl, floor(seg+.5));
   // imprint: inside the logo the pattern turns to its opposite colours
   col = mix(col, hueShift(col, .5)*1.15, lm*lImprint);
   float k = uDt*60.;

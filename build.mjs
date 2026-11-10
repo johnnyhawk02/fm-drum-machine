@@ -34,11 +34,11 @@ const visPresets = existsSync(visDir) ? readdirSync(visDir).filter((f) => f.ends
 let commit = '';
 try { commit = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch {}
 const ver = new Date().toISOString().slice(0, 16).replace('T', ' ') + (commit ? ' ' + commit : '');
+const logo = readFileSync(new URL('src/static/logo.png', import.meta.url)).toString('base64');
 const esc = (s) => s.replace(/<\/script/gi, '<\\/script');
-const app = `(() => {\n'use strict';\n${engine}\nconst WORKLET_SRC = ${JSON.stringify(worklet)};\nconst BUILTIN_PRESETS = ${JSON.stringify(presets)};\nconst BUILTIN_VIS = ${JSON.stringify(visPresets)};\nconst APP_VER = ${JSON.stringify(ver)};\n${ui}\n})();`;
+const app = `(() => {\n'use strict';\n${engine}\nconst WORKLET_SRC = ${JSON.stringify(worklet)};\nconst BUILTIN_PRESETS = ${JSON.stringify(presets)};\nconst BUILTIN_VIS = ${JSON.stringify(visPresets)};\nconst LOGO_URL = ${JSON.stringify('data:image/png;base64,' + logo)};\nconst APP_VER = ${JSON.stringify(ver)};\n${ui}\n})();`;
 const font = readFileSync(new URL('src/static/vt323-latin.woff2', import.meta.url)).toString('base64');
 const fontCss = `@font-face { font-family: 'VT323'; font-style: normal; font-weight: 400; font-display: block; src: url(data:font/woff2;base64,${font}) format('woff2'); }\n`;
-const logo = readFileSync(new URL('src/static/logo.png', import.meta.url)).toString('base64');
 const page = read('src/index.src.html')
   .replace('/*@CSS@*/', () => fontCss + read('src/ui/style.css').replaceAll('url(logo.png)', `url(data:image/png;base64,${logo})`))
   .replace('/*@APP@*/', () => esc(app));

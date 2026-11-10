@@ -41,7 +41,6 @@ header { display: flex; align-items: center; gap: 8px; padding: 12px 18px 0; pos
 /* logo: the artwork is used as a mask, so it is printed in the ink colour on any screen colour (like multiply) */
 header .logo { width: 108px; height: 40px; margin-right: 8px; flex: none; font-size: 0; background: var(--ink);
   -webkit-mask: url(logo.png) center / contain no-repeat; mask: url(logo.png) center / contain no-repeat; }
-header .logo { cursor: pointer; }
 header .logo small { font-size: 18px; opacity: .6; margin-left: 4px; }
 header .rnd { position: relative; margin-left: 10px; }
 header .rnd .rndopen { height: 36px; min-width: 150px; font-size: 20px; }

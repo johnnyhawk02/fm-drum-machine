@@ -68,8 +68,11 @@ function buildHeader() {
   const hd = $('hdr');
   hd.innerHTML = '';
   const logo = h('div', 'logo', 'fm/dm');
-  logo.title = 'visualiser';
-  logo.addEventListener('click', () => openVis());
+  if (!HOST) { // the visualiser is web-only for now (Johnny, 2026-11-10: not in the plugin yet)
+    logo.title = 'visualiser';
+    logo.style.cursor = 'pointer';
+    logo.addEventListener('click', () => openVis());
+  }
   hd.append(logo);
   hd.append(btn('options', 'sm', () => openOptions()), btn('?', 'sm', () => openHelp()));
   hd.append(btn('quick', 'sm', () => openQuick())); // TEMPORARY quick pad

@@ -187,6 +187,6 @@ function boot() {
     });
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((r) => r.update()).catch(() => {});
   }
-  window.__fmdm = { M, NV_, get ctx() { return ctx; }, get irConv() { return irConv; }, get node() { return node; }, setG, S, presetName, presetNameRaw, isRude, NAME_WORDS, applyPreset, BUILTIN_PRESETS, togglePlay, showPage, runRandom, measureHit, NP, P };
+  window.__fmdm = { M, NV_, get ctx() { return ctx; }, get irConv() { return irConv; }, get node() { return node; }, setG, S, presetName, presetNameRaw, isRude, NAME_WORDS, applyPreset, BUILTIN_PRESETS, togglePlay, showPage, runRandom, measureHit, NP, P, get vis() { return typeof vis !== "undefined" ? vis : null; }, get visOpt() { return typeof visOpt !== "undefined" ? visOpt : null; } };
 }
 boot();

@@ -22,6 +22,8 @@ const RND = {
   fx: { label: 'random fx', depth: 1, chance: { echo: 1, reverb: 1, sends: 1, master: 0.3 } },
   alterfx: { label: 'alter fx', depth: 0.3, chance: { echo: 1, reverb: 1, sends: 1, master: 1 } },
   motion: { label: 'motion', depth: 0.6, chance: {} },
+  // the visualiser's randomise everything: everything plus xmod and motion (not in the header menu)
+  all: { label: 'everything', depth: 1, chance: {} },
 };
 const R_ORDER = ['everything', 'kit', 'alter', 'pattern', 'crossfeed', 'fx', 'alterfx', 'motion'];
 
@@ -214,12 +216,13 @@ function runRandom(name) {
   if (mental && rr() < 0.3) S.opts.wild = true; // wild ranges some of the time
   const d = mental ? r.depth + (1 - r.depth) * 0.3 : r.depth; // a third of the way to full depth
   const ch = (c) => (mental ? Object.fromEntries(Object.keys(c).map((k) => [k, c[k] + (1 - c[k]) * 0.3])) : c);
-  if (name === 'everything') {
+  const all = name === 'everything' || name === 'all';
+  if (all) {
     rndPattern(d, mental ? { genre: 0.8 } : { genre: 0.6 });
     rndKit(d, ch(RND.kit.chance), false);
     rndFx(d, ch(RND.fx.chance), false);
     rndMix(d);
-    if (mental) { rndXfeed(0.7); rndMotion(0.7); }
+    if (mental || name === 'all') { rndXfeed(0.7); rndMotion(0.7); }
   } else if (name === 'kit') rndKit(d, ch(r.chance), false);
   else if (name === 'alter') rndKit(d, ch(r.chance), true);
   else if (name === 'pattern') rndPattern(d, ch(r.chance));
@@ -238,7 +241,7 @@ function runRandom(name) {
       changed.push(ch);
     }
     // xmod and knob sequences change how loud a drum gets, so those level every drum
-    if (name === 'crossfeed' || name === 'motion' || (name === 'everything' && mental)) changed.fill(true);
+    if (name === 'crossfeed' || name === 'motion' || (all && (mental || name === 'all'))) changed.fill(true);
     autoLevel(changed);
   }
   sendAll(S.opts.nextBar && S.playing);

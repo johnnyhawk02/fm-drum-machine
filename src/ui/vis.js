@@ -1,16 +1,17 @@
 // fm/dm — visualiser: click the logo for a full-screen feedback-shader picture. It is Johnny's Slow Signal video
 // synth (same scene, feedback and signal shaders, same visual controls), but its patch matrix takes the six
 // drums as sources in place of the LFOs and the audio input: each drum's envelope, from its level meter. The
-// fm/dm logo sits in the picture: the drums (and everything in the matrix) move it, it follows the picture's
-// geometry and imprints on its pattern, and every few bars it flashes into the feedback trails; that flash is
-// the seventh matrix source (logo), so it can move everything else too. The goon artwork has its own controls
-// and its own flash, the eighth matrix source (goon). Randomise picture shows one of the two, in the centre; if
-// both are turned up by hand the goon sits above the centre and the logo below it.
+// image (the fm/dm logo or the goon artwork, picked with the image button) sits in the centre of the picture:
+// the drums (and everything in the matrix) move it, it follows the picture's geometry and imprints on its
+// pattern, and every few bars it flashes into the feedback trails; that flash is the seventh matrix source (img),
+// so it can move everything else too. Randomise picture picks the image; a morph to a preset with the other image
+// shrinks the old one away and grows the new one in.
 // Randomise picture always leaves the mirror on; randomise everything randomises the sounds,
 // rhythm, fx, mix, xmod and motion. Esc or ✕ closes; Enter randomises the picture.
 
-const VIS_SRC = [...SHORT, 'logo', 'goon']; // dr1 dr2 dr3 sn cy hh, the logo flash and the goon flash
-const VIS_IMG = 6; // first image-flash source
+const VIS_SRC = [...SHORT, 'img']; // dr1 dr2 dr3 sn cy hh, and the image flash
+const VIS_IMG = 6; // the image-flash source
+const VIS_IMAGES = ['logo', 'goon']; // vis.img picks one
 const VIS_N = VIS_SRC.length;
 const VIS_PARAMS = [
   { g: 'colour' },
@@ -36,50 +37,35 @@ const VIS_PARAMS = [
   { g: 'signal' },
   { k: 'chroma', n: 'chroma split', min: 0, max: 0.03, d: 0.004 },
   { k: 'scan', n: 'scanlines', min: 0, max: 1, d: 0.15 },
-  // the fm/dm logo, drawn over the picture; its feedback amount is how much of it goes into the trails
-  { g: 'logo' },
-  { k: 'lAmt', n: 'logo level', min: 0, max: 1, d: 1 },
-  { k: 'lSize', n: 'logo size', min: 0.1, max: 1.6, d: 0.55 },
-  { k: 'lDistort', n: 'logo distort', min: 0, max: 1, d: 0 },
-  { k: 'lPinch', n: 'logo pincushion', min: -1, max: 1, d: 0 },
-  { k: 'lWave', n: 'logo wave', min: 0, max: 1, d: 0 },
-  { k: 'lRipple', n: 'logo ripple', min: 0, max: 1, d: 0 },
-  { k: 'lStretch', n: 'logo stretch', min: -1, max: 1, d: 0 },
-  { k: 'lHue', n: 'logo hue', min: 0, max: 1, d: 0.05, wrap: true },
-  { k: 'lSat', n: 'logo saturation', min: 0, max: 1, d: 0 },
-  { k: 'lBright', n: 'logo brightness', min: 0, max: 2, d: 1 },
-  { k: 'lWarp', n: 'logo follows', min: 0, max: 1, d: 0.3 },
-  { k: 'lImprint', n: 'logo imprint', min: 0, max: 1, d: 0.25 },
-  { k: 'lFlash', n: 'logo flash', min: 0, max: 1, d: 0.8 },
+  // the image (logo or goon), drawn over the picture
+  { g: 'image' },
+  { k: 'lAmt', n: 'image level', min: 0, max: 1, d: 1 },
+  { k: 'lSize', n: 'image size', min: 0.1, max: 1.6, d: 0.55 },
+  { k: 'lDistort', n: 'distort', min: 0, max: 1, d: 0 },
+  { k: 'lPinch', n: 'pincushion', min: -1, max: 1, d: 0 },
+  { k: 'lWave', n: 'wave', min: 0, max: 1, d: 0 },
+  { k: 'lRipple', n: 'ripple', min: 0, max: 1, d: 0 },
+  { k: 'lStretch', n: 'stretch', min: -1, max: 1, d: 0 },
+  { k: 'lHue', n: 'image hue', min: 0, max: 1, d: 0.05, wrap: true },
+  { k: 'lSat', n: 'image saturation', min: 0, max: 1, d: 0 },
+  { k: 'lBright', n: 'image brightness', min: 0, max: 2, d: 1 },
+  { k: 'lWarp', n: 'image follows', min: 0, max: 1, d: 0.3 },
+  { k: 'lImprint', n: 'image imprint', min: 0, max: 1, d: 0.25 },
+  { k: 'lFlash', n: 'image flash', min: 0, max: 1, d: 0.8 },
   { k: 'lEvery', n: 'flash every (bars)', min: 1, max: 16, d: 4 },
   { k: 'lFade', n: 'flash length', min: 0.05, max: 1, d: 0.4 },
-  // the goon artwork, above the centre: the same controls as the logo
-  { g: 'goon' },
-  { k: 'gAmt', n: 'goon level', min: 0, max: 1, d: 0 },
-  { k: 'gSize', n: 'goon size', min: 0.1, max: 1.6, d: 0.42 },
-  { k: 'gDistort', n: 'goon distort', min: 0, max: 1, d: 0 },
-  { k: 'gPinch', n: 'goon pincushion', min: -1, max: 1, d: 0 },
-  { k: 'gWave', n: 'goon wave', min: 0, max: 1, d: 0 },
-  { k: 'gRipple', n: 'goon ripple', min: 0, max: 1, d: 0 },
-  { k: 'gStretch', n: 'goon stretch', min: -1, max: 1, d: 0 },
-  { k: 'gHue', n: 'goon hue', min: 0, max: 1, d: 0.05, wrap: true },
-  { k: 'gSat', n: 'goon saturation', min: 0, max: 1, d: 0 },
-  { k: 'gBright', n: 'goon brightness', min: 0, max: 2, d: 1 },
-  { k: 'gWarp', n: 'goon follows', min: 0, max: 1, d: 0.15 },
-  { k: 'gImprint', n: 'goon imprint', min: 0, max: 1, d: 0 },
-  { k: 'gFlash', n: 'goon flash', min: 0, max: 1, d: 0 },
-  { k: 'gEvery', n: 'goon flash every', min: 1, max: 16, d: 4 },
-  { k: 'gFade', n: 'goon flash length', min: 0.05, max: 1, d: 0.4 },
 ];
-// the images: logo (l*) below the centre, goon (g*) above it
-const VIS_IMGS = ['l', 'g'];
-const visImgKey = (k) => VIS_IMGS.includes(k[0]) && k !== 'lEvery' && k !== 'gEvery';
+const visImgKey = (k) => k[0] === 'l' && k !== 'lEvery';
 const VPK = VIS_PARAMS.filter((p) => p.k);
 // patches were saved by row position. Before the image effects (fx: 2) the rows were these, and older ones are a
 // prefix of them (logo only, or with a 'logo feedback' row after logo brightness)
-const VIS_KEYS_V1 = ['hue', 'spread', 'sat', 'bright', 'zoom', 'rot', 'seg', 'shape', 'scale', 'warp', 'contour', 'flow',
-  'fb', 'fbZoom', 'fbRot', 'fbHue', 'chroma', 'scan',
+const VIS_KEYS_PIC = ['hue', 'spread', 'sat', 'bright', 'zoom', 'rot', 'seg', 'shape', 'scale', 'warp', 'contour', 'flow',
+  'fb', 'fbZoom', 'fbRot', 'fbHue', 'chroma', 'scan'];
+const VIS_KEYS_V1 = [...VIS_KEYS_PIC,
   ...['l', 'g'].flatMap((c) => ['Amt', 'Size', 'Rot', 'Hue', 'Sat', 'Bright', 'Warp', 'Imprint', 'Flash', 'Every', 'Fade'].map((q) => c + q))];
+// fx: 2 had separate logo (l*) and goon (g*) rows, each with the image effects, and a goon flash source
+const VIS_IMG_Q2 = ['Amt', 'Size', 'Distort', 'Pinch', 'Wave', 'Ripple', 'Stretch', 'Hue', 'Sat', 'Bright', 'Warp', 'Imprint', 'Flash', 'Every', 'Fade'];
+const VIS_KEYS_V2 = [...VIS_KEYS_PIC, ...['l', 'g'].flatMap((c) => VIS_IMG_Q2.map((q) => c + q))];
 const VIDX = Object.fromEntries(VPK.map((p, i) => [p.k, i]));
 
 function visDefault() {
@@ -89,14 +75,23 @@ function visDefault() {
   set('rot', 1, 0.08); set('warp', 2, 0.25);
   set('hue', 3, 0.15); set('chroma', 3, 0.25); // snare shifts colour and splits it
   set('contour', 4, 0.4); set('scan', 5, 0.4); set('fbRot', 5, 0.2);
-  return { fx: 2, base: VPK.map((p) => p.d), mod, depth: 1, slew: 0.03 };
+  return { fx: 3, img: 0, base: VPK.map((p) => p.d), mod, depth: 1, slew: 0.03 };
 }
 // a patch saved before a control existed gets that control's default; older patches are matched up by row name
 function visFix(p) {
   if (!p || !p.base || !p.mod || p.mod.length !== p.base.length) return null;
-  if (p.mod.some((row) => row.length > VIS_N)) return null;
-  let keys = VPK.map((P) => P.k);
-  if (p.fx !== 2) {
+  if (p.mod.some((row) => row.length > 8)) return null;
+  let keys = VPK.map((P) => P.k), img = p.img === 1 ? 1 : 0, src = (row) => row.slice(0, VIS_N);
+  if (p.fx === 2) {
+    // one image now: whichever was showing (the goon if its level was up and the logo's wasn't) takes the rows
+    keys = VIS_KEYS_V2;
+    const at2 = (k) => p.base[keys.indexOf(k)] ?? 0;
+    if (at2('gAmt') + at2('gFlash') > 0.001 && at2('lAmt') + at2('lFlash') <= 0.001) {
+      img = 1;
+      keys = keys.map((k) => (k[0] === 'l' && !VIS_KEYS_PIC.includes(k) ? '' : k[0] === 'g' ? 'l' + k.slice(1) : k));
+      src = (row) => [...row.slice(0, 6), row[7] || 0];
+    }
+  } else if (p.fx !== 3) {
     keys = VIS_KEYS_V1;
     const logoOnly = keys.indexOf('gAmt');
     if (p.base.length === logoOnly + 1) { // with the old 'logo feedback' row
@@ -105,13 +100,14 @@ function visFix(p) {
     }
   }
   if (p.base.length > keys.length) return null;
-  const at = Object.fromEntries(keys.slice(0, p.base.length).map((k, i) => [k, i]));
+  const at = {};
+  keys.slice(0, p.base.length).forEach((k, i) => k && !(k in at) && (at[k] = i));
   const base = VPK.map((P) => (P.k in at ? p.base[at[P.k]] : P.d));
   const mod = VPK.map((P) => {
-    const row = P.k in at ? p.mod[at[P.k]] : [];
-    return [...row, ...new Array(VIS_N - row.length).fill(0)]; // the logo and goon sources came later
+    const row = P.k in at ? src(p.mod[at[P.k]]) : [];
+    return [...row, ...new Array(VIS_N - row.length).fill(0)]; // the image source came later
   });
-  return { ...p, fx: 2, base, mod, depth: p.depth ?? 1, slew: p.slew ?? 0.03 };
+  return { ...p, fx: 3, img, base, mod, depth: p.depth ?? 1, slew: p.slew ?? 0.03 };
 }
 function visLoad() {
   try {
@@ -128,17 +124,15 @@ function visSave() {
 // mirror is always up after a randomise: at least 3 segments, and drums only ever add more
 function visRandomise() {
   const r = Math.random;
-  const off = r() < 0.5 ? 'l' : 'g'; // one image each time: the other one is hidden, and nothing moves it
+  const img = Math.floor(r() * VIS_IMAGES.length); // which image this time
   const base = VPK.map((P) => {
     const span = P.max - P.min;
     if (P.k === 'fb') return 0.3 + r() * 0.55;
     if (P.k === 'bright') return 1 + r() * 0.5;
     if (P.k === 'sat') return 0.75 + r() * 0.25; // vivid
     if (P.k === 'chroma') return r() * 0.008;
-    // the logo: solid, with subtle effects every time (mid size, mostly upright, gentle follow/imprint/flash)
-    // (the goon gets the same treatment)
-    const q = VIS_IMGS.includes(P.k[0]) ? P.k.slice(1) : '';
-    if (P.k[0] === off && (q === 'Amt' || q === 'Flash' || q === 'Imprint')) return 0;
+    // the image: solid, with subtle effects every time (mid size, gentle follow/imprint/flash)
+    const q = visImgKey(P.k) || P.k === 'lEvery' ? P.k.slice(1) : '';
     if (q === 'Amt') return 1;
     if (q === 'Size') return 0.3 + r() * 0.3;
     // image effects: a couple of them each time, gently
@@ -146,7 +140,7 @@ function visRandomise() {
     if (q === 'Pinch' || q === 'Stretch') return r() < 0.35 ? (r() - 0.5) * 0.9 : 0;
     if (q === 'Sat') return 0.55 + r() * 0.45;
     if (q === 'Bright') return 1 + r() * 0.4;
-    if (q === 'Warp') return r() * (P.k === 'gWarp' ? 0.2 : 0.35); // the goon is wide: it folds up sooner
+    if (q === 'Warp') return r() * (img === 1 ? 0.2 : 0.35); // the goon is wide: it folds up sooner
     if (q === 'Imprint') return r() * 0.2;
     if (q === 'Flash') return 0.15 + r() * 0.3;
     if (q === 'Every') return [4, 8, 8, 16][Math.floor(r() * 4)];
@@ -158,23 +152,22 @@ function visRandomise() {
   const mod = VPK.map(() => new Array(VIS_N).fill(0));
   // lots of targets: 16 to 27 patches, spread over different controls (shuffled, so no two land on the same row
   // until every row has one), and each drum reaches several of them
-  const solid = (k) => k === 'lEvery' || k === 'lAmt' || k === 'gEvery' || k === 'gAmt';
+  const solid = (k) => k === 'lEvery' || k === 'lAmt';
   const rows = VPK.map((P, i) => i).filter((i) => !solid(VPK[i].k));
   for (let i = rows.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [rows[i], rows[j]] = [rows[j], rows[i]]; }
   const pins = 16 + Math.floor(r() * 12);
   for (let n = 0; n < pins; n++) {
     const d = rows[n % rows.length];
-    const s = n < VIS_N ? n : Math.floor(r() * VIS_N); // every drum (and the logo and goon flashes) moves something
+    const s = n < VIS_N ? n : Math.floor(r() * VIS_N); // every drum (and the image flash) moves something
     const k = VPK[d].k;
     let a = (r() < 0.75 ? 1 : -1) * (0.06 + r() * 0.3);
     if (k === 'seg') a = Math.abs(a);
     if (k === 'flow' || k === 'zoom' || k === 'rot') a *= 0.5; // big jumps here look like glitches
-    if (visImgKey(k) || s >= VIS_IMG) a *= 0.35; // drums move the images gently, and their flashes move the picture gently
-    if (solid(k)) a = 0; // the images stay solid
-    if (k[0] === off && visImgKey(k)) a = 0;
+    if (visImgKey(k) || s >= VIS_IMG) a *= 0.35; // drums move the image gently, and its flash moves the picture gently
+    if (solid(k)) a = 0; // the image stays solid
     mod[d][s] = Math.round(a * 100) / 100;
   }
-  vis = { fx: 2, base, mod, depth: vis.depth, slew: vis.slew };
+  vis = { fx: 3, img, base, mod, depth: vis.depth, slew: vis.slew };
   visSave();
   visSync();
 }
@@ -203,12 +196,10 @@ function visParam(i) {
 // ---- WebGL: scene pass with feedback into ping-pong buffers, then a signal pass (from Slow Signal)
 const VIS_VS = `#version 300 es
 in vec2 a; out vec2 vUv; void main(){ vUv = a*.5+.5; gl_Position = vec4(a,0.,1.); }`;
-// the images: alpha as a mask, sharpened (the artwork is small), sized in screen heights; the logo sits just
-// below the centre and the goon just above it
+// the image: alpha as a mask, sharpened (the artwork is small), centred, sized in screen heights
 const VIS_LOGO_GLSL = `
-uniform sampler2D uLogo, uGoon; uniform float uLogoAsp, uGoonAsp, uFlash, uFlashG, uBoth;
+uniform sampler2D uImg; uniform float uImgAsp, uFlash;
 uniform float lAmt, lSize, lHue, lSat, lBright, lImprint, lWarp, lDistort, lPinch, lWave, lRipple, lStretch;
-uniform float gAmt, gSize, gHue, gSat, gBright, gImprint, gWarp, gDistort, gPinch, gWave, gRipple, gStretch;
 vec3 lhsv(vec3 c){ vec3 p=abs(fract(c.xxx+vec3(1.,2./3.,1./3.))*6.-3.); return c.z*mix(vec3(1.), clamp(p-1.,0.,1.), c.y); }
 // p: centred screen position (x scaled by the aspect), relative to the image's centre; returns the bare shape, 0..1.
 // fx: distort (noise), pincushion (+) / barrel (-), wave, ripple; st: stretch wide (+) or tall (-)
@@ -224,15 +215,7 @@ float imgMask(sampler2D tx, float asp, vec2 p, float sz, vec4 fx, float st){
   if (t.x < 0. || t.x > 1. || t.y < 0. || t.y > 1.) return 0.;
   return smoothstep(.3, .7, texture(tx, t).a);
 }
-const float GAP = .05;
-// following the picture's zoom and mirror grows each image on screen (the mirror folds it back on itself), so
-// the gap allows for it
-float grow(float w){ return mix(1., 1./max(zoom, .3), w) * (1. + 1.6*w); }
-// uBoth: 1 when both images show (then they move apart), 0 when only one does (it sits in the centre)
-vec2 logoAt(){ return vec2(0., -GAP - .5*lSize/uLogoAsp*grow(lWarp)) * uBoth; }
-vec2 goonAt(){ return vec2(0., GAP + .5*gSize/uGoonAsp*grow(gWarp)) * uBoth; }
-vec3 logoCol(){ return lhsv(vec3(lHue, lSat, 1.)) * lBright; }
-vec3 goonCol(){ return lhsv(vec3(gHue, gSat, 1.)) * gBright; }`;
+vec3 logoCol(){ return lhsv(vec3(lHue, lSat, 1.)) * lBright; }`;
 const VIS_FS_SCENE = `#version 300 es
 precision highp float;
 in vec2 vUv; out vec4 o;
@@ -274,15 +257,11 @@ void main(){
   float n0 = floor(max(seg, 1.)), x = max(seg, 1.)-n0;
   vec3 col = field(p, n0);
   if(x > .001) col = mix(col, field(p, n0+1.), x);
-  // the logo and the goon, each carried part way through the picture's own zoom, rotation, mirror and warp,
-  // centred on itself
+  // the image, carried part way through the picture's own zoom, rotation, mirror and warp
   vec2 p0 = (vUv-.5)*vec2(asp,1.);
-  vec2 ql = p0 - logoAt(), qg = p0 - goonAt();
-  float lm = imgMask(uLogo, uLogoAsp, mix(ql, follow(ql), lWarp), lSize, vec4(lDistort, lPinch, lWave, lRipple), lStretch);
-  float gm = imgMask(uGoon, uGoonAsp, mix(qg, follow(qg), gWarp), gSize, vec4(gDistort, gPinch, gWave, gRipple), gStretch);
-  // imprint: inside the logo (and the goon) the pattern turns to its opposite colours
+  float lm = imgMask(uImg, uImgAsp, mix(p0, follow(p0), lWarp), lSize, vec4(lDistort, lPinch, lWave, lRipple), lStretch);
+  // imprint: inside the image the pattern turns to its opposite colours
   col = mix(col, hueShift(col, .5)*1.15, lm*lImprint);
-  col = mix(col, hueShift(col, .5)*1.15, gm*gImprint);
   float k = uDt*60.;
   vec2 fp = (vUv-.5)*vec2(asp,1.);
   fp = R(fbRot*k)*fp / pow(fbZoom, k);
@@ -294,7 +273,6 @@ void main(){
   float w = (1.-f)*(1.-.55*fb0)/(1.-fb0);
   vec3 outc = clamp(col*w + prev*f, 0., 1.);
   outc = mix(outc, logoCol(), clamp(lm*(lAmt + uFlash), 0., 1.)); // only ever through the effects: into the trails, with the flash
-  outc = mix(outc, goonCol(), clamp(gm*(gAmt + uFlashG), 0., 1.));
   o = vec4(outc, 1.);
 }`;
 const VIS_FS_POST = `#version 300 es
@@ -406,16 +384,12 @@ class VisRenderer {
     }
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
-  bindLogo(P) {
-    const gl = this.gl;
+  bindImg(P, n) {
+    const gl = this.gl, im = n === 1 ? this.goon : this.logo;
     gl.activeTexture(gl.TEXTURE1);
-    gl.bindTexture(gl.TEXTURE_2D, this.logo.tex);
-    gl.uniform1i(P.loc.uLogo, 1);
-    gl.uniform1f(P.loc.uLogoAsp, this.logo.asp);
-    gl.activeTexture(gl.TEXTURE2);
-    gl.bindTexture(gl.TEXTURE_2D, this.goon.tex);
-    gl.uniform1i(P.loc.uGoon, 2);
-    gl.uniform1f(P.loc.uGoonAsp, this.goon.asp);
+    gl.bindTexture(gl.TEXTURE_2D, im.tex);
+    gl.uniform1i(P.loc.uImg, 1);
+    gl.uniform1f(P.loc.uImgAsp, im.asp);
     gl.activeTexture(gl.TEXTURE0);
   }
   draw(u, dt) {
@@ -431,7 +405,7 @@ class VisRenderer {
     gl.uniform2f(P.loc.uRes, this.w, this.h);
     gl.uniform1f(P.loc.uDt, Math.min(dt, 0.1));
     for (const k in P.loc) if (k in u) gl.uniform1f(P.loc[k], u[k]);
-    this.bindLogo(P);
+    this.bindImg(P, u.img);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     P = this.post;
     gl.useProgram(P.p);
@@ -448,7 +422,7 @@ class VisRenderer {
 
 // ---- overlay: the picture, a small bar (randomise, matrix, close) and the matrix panel, both in the LCD look
 let visEl = null, visR = null, visOn = false, visRaf = 0, visLast = 0, visIdle = 0, visTick = 0;
-let visFlow = 0, visFlashPh = 0, visFlashG = 0;
+let visFlow = 0, visFlashPh = 0, visImgK = 1; // visImgK: image scale, shrinks to 0 and back when a morph changes image
 const visSm = new Float64Array(VPK.length);
 const visRows = [];
 
@@ -547,7 +521,19 @@ function visBuild() {
   let idx = 0;
   for (const P of VIS_PARAMS) {
     if (P.g) {
-      mat.append(h('div', 'vgrp', P.g));
+      const g = h('div', 'vgrp', P.g);
+      if (P.g === 'image') {
+        // which image: logo or goon (the rows below are its controls)
+        visImgBtn = btn('', 'sm', () => {
+          visMorph = null;
+          vis.img = ((vis.img || 0) + 1) % VIS_IMAGES.length;
+          visSave();
+          visDrawImg();
+        });
+        visImgBtn.title = 'which image the controls below drive';
+        g.append(' ', visImgBtn);
+      }
+      mat.append(g);
       continue;
     }
     const i = idx++;
@@ -646,7 +632,12 @@ function visSyncRow(i) {
   visRows[i].base.firstChild.style.width = (((vis.base[i] - P.min) / (P.max - P.min)) * 100).toFixed(1) + '%';
   for (let s = 0; s < VIS_N; s++) visSyncCell(i, s);
 }
+let visImgBtn = null;
+function visDrawImg() {
+  if (visImgBtn) visImgBtn.textContent = VIS_IMAGES[vis.img || 0];
+}
 function visSync() {
+  visDrawImg();
   for (let i = 0; i < VPK.length; i++) visSyncRow(i);
 }
 function visFit() {
@@ -671,11 +662,8 @@ function visFrame(now) {
   visFlashPh = (visFlashPh + (dt * bpm) / 240 / Math.max(1, visSm[VIDX.lEvery])) % 1;
   const fl = Math.max(0.05, visSm[VIDX.lFade]);
   visEnv[6] = visFlashPh < fl ? Math.sin((Math.PI * visFlashPh) / fl) ** 2 : 0;
-  // the goon's flash, on its own bar count
-  visFlashG = (visFlashG + (dt * bpm) / 240 / Math.max(1, visSm[VIDX.gEvery])) % 1;
-  const fg = Math.max(0.05, visSm[VIDX.gFade]);
-  visEnv[7] = visFlashG < fg ? Math.sin((Math.PI * visFlashG) / fg) ** 2 : 0;
   if (visMorph) visMorphTick(now);
+  if (!visMorph) visImgK = 1;
   else if (visOpt.auto && (visHold += dt) >= Math.max(4, visOpt.morph)) visStep(1);
   const a = vis.slew > 0 ? 1 - Math.exp(-dt / vis.slew) : 1;
   for (let i = 0; i < VPK.length; i++) {
@@ -684,9 +672,9 @@ function visFrame(now) {
     visSm[i] += a * d;
   }
   visFlow += visSm[VIDX.flow] * dt;
-  const shows = (c) => clamp((Math.max(0, visSm[VIDX[c + 'Amt']]) + Math.max(0, visSm[VIDX[c + 'Flash']]) + Math.max(0, visSm[VIDX[c + 'Imprint']])) * 10, 0, 1);
-  const u = { flowT: visFlow, uFlash: visEnv[6] * visSm[VIDX.lFlash], uFlashG: visEnv[7] * visSm[VIDX.gFlash], uBoth: Math.min(shows('l'), shows('g')) };
+  const u = { flowT: visFlow, uFlash: visEnv[6] * visSm[VIDX.lFlash], img: vis.img || 0 };
   for (let i = 0; i < VPK.length; i++) u[VPK[i].k] = visSm[i];
+  u.lSize *= visImgK;
   visR.draw(u, dt);
   if ((visTick & 15) === 0) visDrawVals(); // tempo, swing and play can change elsewhere (randomise, presets, space bar)
   // live value on each base bar
@@ -888,6 +876,14 @@ function visMorphTick(now) {
   vis.mod = m.vTo.mod.map((row, i) => row.map((b, s) => m.vFrom.mod[i][s] + (b - m.vFrom.mod[i][s]) * e));
   vis.depth = m.vFrom.depth + (m.vTo.depth - m.vFrom.depth) * e;
   vis.slew = m.vFrom.slew + (m.vTo.slew - m.vFrom.slew) * e;
+  // a different image: the old one shrinks to nothing, then the new one grows in
+  const i0 = m.vFrom.img || 0, i1 = m.vTo.img || 0;
+  if (i0 !== i1) {
+    vis.img = x < 0.5 ? i0 : i1;
+    const k = Math.abs(1 - 2 * x);
+    visImgK = k * k * (3 - 2 * k);
+    if (((visTick & 7) === 0 || x >= 1) && visImgBtn) visDrawImg();
+  } else vis.img = i1;
   // sound: every parameter glides, sent in one message about 30 times a second
   if (m.pr && (!m.lastSend || now - m.lastSend > 33 || x >= 1)) {
     m.lastSend = now;

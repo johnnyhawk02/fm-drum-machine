@@ -113,12 +113,16 @@ function visRandomise() {
     return P.d + (r() - 0.5) * span * 0.5;
   }).map((v, i) => clamp(v, VPK[i].min, VPK[i].max));
   const mod = VPK.map(() => new Array(VIS_N).fill(0));
-  const pins = 7 + Math.floor(r() * 7);
+  // lots of targets: 16 to 27 patches, spread over different controls (shuffled, so no two land on the same row
+  // until every row has one), and each drum reaches several of them
+  const rows = VPK.map((P, i) => i).filter((i) => VPK[i].k !== 'lEvery' && VPK[i].k !== 'lAmt');
+  for (let i = rows.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [rows[i], rows[j]] = [rows[j], rows[i]]; }
+  const pins = 16 + Math.floor(r() * 12);
   for (let n = 0; n < pins; n++) {
-    const d = Math.floor(r() * VPK.length);
+    const d = rows[n % rows.length];
     const s = n < VIS_N ? n : Math.floor(r() * VIS_N); // every drum (and the logo flash) moves something
     const k = VPK[d].k;
-    let a = (r() < 0.75 ? 1 : -1) * (0.08 + r() * 0.35);
+    let a = (r() < 0.75 ? 1 : -1) * (0.06 + r() * 0.3);
     if (k === 'seg') a = Math.abs(a);
     if (k === 'flow' || k === 'zoom' || k === 'rot') a *= 0.5; // big jumps here look like glitches
     if (k[0] === 'l' && k !== 'lEvery' || s === VIS_N - 1) a *= 0.35; // drums move the logo gently, and the logo flash moves the picture gently

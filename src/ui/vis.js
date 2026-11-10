@@ -94,14 +94,15 @@ function visRandomise() {
   const base = VPK.map((P) => {
     const span = P.max - P.min;
     if (P.k === 'fb') return 0.3 + r() * 0.55;
-    if (P.k === 'bright') return 0.8 + r() * 0.5;
+    if (P.k === 'bright') return 1 + r() * 0.5;
+    if (P.k === 'sat') return 0.75 + r() * 0.25; // vivid
     if (P.k === 'chroma') return r() * 0.008;
     // the logo: solid, with subtle effects every time (mid size, mostly upright, gentle follow/imprint/flash)
     if (P.k === 'lAmt') return 1;
     if (P.k === 'lSize') return 0.35 + r() * 0.35;
     if (P.k === 'lRot') return r() < 0.8 ? 0 : (r() - 0.5) * 0.5;
-    if (P.k === 'lSat') return r() * 0.5;
-    if (P.k === 'lBright') return 0.6 + r() * 0.4;
+    if (P.k === 'lSat') return 0.55 + r() * 0.45;
+    if (P.k === 'lBright') return 1 + r() * 0.4;
     if (P.k === 'lWarp') return r() * 0.35;
     if (P.k === 'lImprint') return r() * 0.2;
     if (P.k === 'lFlash') return 0.15 + r() * 0.3;
@@ -232,7 +233,11 @@ void main(){
   vec3 c = vec3(texture(uSrc, vUv+d).r, texture(uSrc, vUv).g, texture(uSrc, vUv-d).b);
   float l = .5+.5*sin(vUv.y*3.14159*uLines);
   c *= 1. - scan*.55*l;
-  vec2 w = vUv-.5; c *= 1. - dot(w,w)*.55;
+  // more intense colour: push saturation away from grey, and a little contrast
+  float y = dot(c, vec3(.299,.587,.114));
+  c = max(mix(vec3(y), c, 1.35), 0.);
+  c = clamp((c-.5)*1.08+.5, 0., 1.);
+  vec2 w = vUv-.5; c *= 1. - dot(w,w)*.45;
   o = vec4(c, 1.);
 }`;
 
@@ -402,6 +407,22 @@ function visBuild() {
     visOptSave();
   };
   drawOpt();
+  // clear: removes all your saved visualiser presets (the factory ones are built in and stay); press twice to confirm
+  let clrT = 0;
+  const clr = btn('clear presets', 'sm', () => {
+    if (!clr.classList.contains('armed')) {
+      clr.classList.add('armed', 'on');
+      clr.textContent = 'sure? clear all';
+      clearTimeout(clrT);
+      clrT = setTimeout(() => { clr.classList.remove('armed', 'on'); clr.textContent = 'clear presets'; }, 3000);
+      return;
+    }
+    clearTimeout(clrT);
+    clr.classList.remove('armed', 'on');
+    clr.textContent = 'clear presets';
+    visClearScenes();
+  });
+  clr.title = 'delete all your saved visualiser presets (factory presets stay); press twice';
   const del = btn('del', 'sm', visDeleteScene);
   del.title = 'delete the shown preset';
   const sv = btn('save', 'sm', visSaveScene);
@@ -409,7 +430,7 @@ function visBuild() {
   ex.title = 'download your visualiser presets (picture + sound) as a file, to make factory presets';
   sv.title = 'save the picture and the sound as a new preset';
   bar.append(btn('randomise picture', 'sm', () => { visMorph = null; visRandomise(); }), btn('randomise everything', 'sm', () => { visMorph = null; runRandom('all'); }),
-    sv, btn('‹', 'sm', () => visStep(-1)), name, btn('›', 'sm', () => visStep(1)), mt, auto, del, ex, mbtn, btn('✕', 'sm', visClose));
+    sv, btn('‹', 'sm', () => visStep(-1)), name, btn('›', 'sm', () => visStep(1)), mt, auto, del, clr, ex, mbtn, btn('✕', 'sm', visClose));
   visEl.append(bar, mat);
 
   // matrix: a row per visual control (base bar with its live value, then one cell per drum)
@@ -661,6 +682,13 @@ function visDeleteScene() {
   const now = visScenes();
   visCur = Math.min(visCur, now.length - 1);
   visShowName(visCur >= 0 ? now[visCur].name : '');
+}
+function visClearScenes() {
+  try { localStorage.removeItem(VIS_LS); } catch {}
+  visCur = -1;
+  const l = visScenes();
+  visShowName(l.length ? `${l.length} presets` : '');
+  toast('your visualiser presets are cleared');
 }
 function visShowName(n) {
   if (visEl) visEl.querySelector('.vname').textContent = n || 'no presets';

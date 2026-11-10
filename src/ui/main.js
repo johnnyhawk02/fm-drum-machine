@@ -67,7 +67,10 @@ async function togglePlay() {
 function buildHeader() {
   const hd = $('hdr');
   hd.innerHTML = '';
-  hd.append(h('div', 'logo', 'fm/dm'));
+  const logo = h('div', 'logo', 'fm/dm');
+  logo.title = 'visualiser';
+  logo.addEventListener('click', () => openVis());
+  hd.append(logo);
   hd.append(btn('options', 'sm', () => openOptions()), btn('?', 'sm', () => openHelp()));
   hd.append(btn('quick', 'sm', () => openQuick())); // TEMPORARY quick pad
   const rnd = h('div', 'rnd');

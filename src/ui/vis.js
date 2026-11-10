@@ -288,7 +288,30 @@ function visBuild() {
     mat.hidden = !mat.hidden;
     mbtn.classList.toggle('on', !mat.hidden);
   });
-  bar.append(btn('randomise picture', 'sm', visRandomise), btn('randomise everything', 'sm', () => runRandom('all')), mbtn, btn('✕', 'sm', visClose));
+  const name = h('span', 'vname');
+  const mt = btn('', 'sm', () => {
+    visOpt.morph = VIS_MORPHS[(VIS_MORPHS.indexOf(visOpt.morph) + 1) % VIS_MORPHS.length];
+    drawOpt();
+  });
+  mt.title = 'morph time: how long ‹ › take to glide to the next preset';
+  const auto = btn('auto', 'sm', () => {
+    visOpt.auto = !visOpt.auto;
+    visHold = 0;
+    drawOpt();
+  });
+  auto.title = 'step to the next preset by itself (holds each for the morph time, at least 4 s)';
+  const drawOpt = () => {
+    mt.textContent = visOpt.morph ? `morph ${visOpt.morph}s` : 'morph off';
+    auto.classList.toggle('on', visOpt.auto);
+    visOptSave();
+  };
+  drawOpt();
+  const del = btn('del', 'sm', visDeleteScene);
+  del.title = 'delete the shown preset';
+  const sv = btn('save', 'sm', visSaveScene);
+  sv.title = 'save the picture and the sound as a new preset';
+  bar.append(btn('randomise picture', 'sm', () => { visMorph = null; visRandomise(); }), btn('randomise everything', 'sm', () => { visMorph = null; runRandom('all'); }),
+    sv, btn('‹', 'sm', () => visStep(-1)), name, btn('›', 'sm', () => visStep(1)), mt, auto, del, mbtn, btn('✕', 'sm', visClose));
   visEl.append(bar, mat);
 
   // matrix: a row per visual control (base bar with its live value, then one cell per drum)
@@ -306,6 +329,7 @@ function visBuild() {
     const base = h('span', 'vb', '<i></i><b></b>');
     base.title = 'drag to set; double-click resets';
     const setBase = (x) => {
+      visMorph = null;
       vis.base[i] = P.min + (P.max - P.min) * clamp(x, 0, 1);
       visSyncRow(i);
       visSave();
@@ -351,6 +375,7 @@ function visBuild() {
 function visBindCell(c, i, s) {
   let y0 = 0, a0 = 0, moved = false, id = null;
   const setA = (a) => {
+    visMorph = null;
     vis.mod[i][s] = Math.round(clamp(a, -1, 1) * 100) / 100;
     visSyncCell(i, s);
     visSave();
@@ -412,6 +437,8 @@ function visFrame(now) {
   const dt = Math.min(0.1, Math.max(0.001, (now - visLast) / 1000));
   visLast = now;
   visDrums(dt);
+  if (visMorph) visMorphTick(now);
+  else if (visOpt.auto && (visHold += dt) >= Math.max(4, visOpt.morph)) visStep(1);
   const a = vis.slew > 0 ? 1 - Math.exp(-dt / vis.slew) : 1;
   for (let i = 0; i < VPK.length; i++) {
     let d = visParam(i) - visSm[i];
@@ -438,6 +465,10 @@ function visKey(e) {
     e.preventDefault();
     e.stopImmediatePropagation();
     visClose();
+  } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    visStep(e.key === 'ArrowRight' ? 1 : -1);
   } else if (e.key === 'Enter') {
     e.preventDefault();
     e.stopImmediatePropagation();
@@ -448,6 +479,7 @@ function openVis() {
   if (!visEl && !visBuild()) return toast('the visualiser needs webgl2');
   visOn = true;
   visEl.hidden = false;
+  { const l = visScenes(); visShowName(visCur >= 0 && l[visCur] ? l[visCur].name : l.length ? `${l.length} presets` : ''); }
   for (let i = 0; i < VPK.length; i++) visSm[i] = visParam(i);
   visFit();
   visEl.wake();
@@ -462,6 +494,7 @@ function visClose() {
   if (!visOn) return;
   visOn = false;
   cancelAnimationFrame(visRaf);
+  if (visMorph) visMorphTick(visMorph.t0 + visMorph.dur + 1);
   visEl.hidden = true;
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
 }
@@ -471,3 +504,116 @@ addEventListener('resize', () => visOn && visFit());
 document.addEventListener('fullscreenchange', () => {
   if (visOn && !document.fullscreenElement) visClose();
 });
+
+// ---- visualiser presets: each saves the picture (vis) and the whole sound (the preset page's capture). ‹ › step
+// through them, morphing over the morph time: the picture and every continuous sound parameter glide (exp
+// parameters glide geometrically), switches, the rhythm and knob sequences change halfway. auto steps on by itself.
+const VIS_LS = 'fmdm.visPresets';
+const VIS_MORPHS = [0, 1, 2, 4, 8, 16, 32];
+const visOpt = (() => {
+  try { return { morph: 4, auto: false, ...JSON.parse(localStorage.getItem('fmdm.visOpt') || '{}') }; } catch { return { morph: 4, auto: false }; }
+})();
+const visOptSave = () => { try { localStorage.setItem('fmdm.visOpt', JSON.stringify(visOpt)); } catch {} };
+function visScenes() {
+  try { return JSON.parse(localStorage.getItem(VIS_LS) || '[]'); } catch { return []; }
+}
+let visCur = -1; // index of the scene last loaded or saved
+let visMorph = null; // { t0, dur, vFrom, vTo, sFrom, sTo, pr, half }
+let visHold = 0; // auto: time spent on the current scene
+const visClone = (o) => JSON.parse(JSON.stringify(o));
+function visSaveScene() {
+  const list = visScenes();
+  let name;
+  do name = presetName((Math.random() * 1e9) | 0);
+  while (list.some((p) => p.name === name));
+  list.push({ name, vis: visClone(vis), sound: capture(name) });
+  try { localStorage.setItem(VIS_LS, JSON.stringify(list)); } catch { return toast('could not save (storage full or blocked)'); }
+  visCur = list.length - 1;
+  visShowName(name);
+}
+function visDeleteScene() {
+  const list = visScenes();
+  if (visCur < 0 || visCur >= list.length) return;
+  list.splice(visCur, 1);
+  try { localStorage.setItem(VIS_LS, JSON.stringify(list)); } catch {}
+  visCur = Math.min(visCur, list.length - 1);
+  visShowName(visCur >= 0 ? list[visCur].name : '');
+}
+function visShowName(n) {
+  if (visEl) visEl.querySelector('.vname').textContent = n || 'no presets';
+}
+// the sound of a preset as a flat array, the way applyPreset would set it
+function visSoundBase(pr) {
+  const b = S.base.slice();
+  for (let v = 0; v < 6; v++) for (const p of PARAMS) b[v * NP + p.i] = pr.voices[v]?.[p.id] ?? defaultFor(v * NP + p.i);
+  for (const p of MPARAMS) b[NV_ + p.i] = pr.master?.[p.id] ?? p.def;
+  return b;
+}
+function visStep(dir) {
+  const list = visScenes();
+  if (!list.length) return toast('save a preset first');
+  visCur = ((visCur < 0 ? (dir > 0 ? -1 : 0) : visCur) + dir + list.length) % list.length;
+  const sc = list[visCur];
+  visShowName(sc.name);
+  visHold = 0;
+  pushUndo();
+  visMorph = { t0: performance.now(), dur: visOpt.morph * 1000, vFrom: visClone(vis), vTo: sc.vis, sFrom: S.base.slice(), sTo: visSoundBase(sc.sound), pr: sc.sound, half: false };
+  visMorphTick(visMorph.t0);
+}
+function visLerp(a, b, x, curve) {
+  if (curve === 'int') return x < 0.5 ? a : b;
+  if (curve === 'exp' && a > 0 && b > 0) return a * Math.pow(b / a, x);
+  return a + (b - a) * x;
+}
+function visMorphTick(now) {
+  const m = visMorph;
+  if (!m) return;
+  const x = m.dur > 0 ? clamp((now - m.t0) / m.dur, 0, 1) : 1;
+  const e = x * x * (3 - 2 * x);
+  // picture
+  vis.base = m.vTo.base.map((b, i) => {
+    let a = m.vFrom.base[i], d = b - a;
+    if (VPK[i].wrap) d -= Math.round(d);
+    return a + d * e;
+  });
+  vis.mod = m.vTo.mod.map((row, i) => row.map((b, s) => m.vFrom.mod[i][s] + (b - m.vFrom.mod[i][s]) * e));
+  vis.depth = m.vFrom.depth + (m.vTo.depth - m.vFrom.depth) * e;
+  vis.slew = m.vFrom.slew + (m.vTo.slew - m.vFrom.slew) * e;
+  // sound: every parameter glides, sent in one message about 30 times a second
+  if (!m.lastSend || now - m.lastSend > 33 || x >= 1) {
+    m.lastSend = now;
+    for (let g = 0; g < m.sTo.length; g++) S.base[g] = visLerp(m.sFrom[g], m.sTo[g], e, specOf(g).curve);
+    post({ t: 'all', base: S.base.slice() });
+  }
+  // halfway: the rhythm, knob sequences, beat generator and perf knobs change over
+  if (!m.half && x >= 0.5) {
+    m.half = true;
+    const pr = m.pr;
+    S.vel.fill(0);
+    S.flag.fill(0);
+    (pr.pat || []).forEach((row, t) => row.forEach((v, k) => { S.vel[t * MAX_STEPS + k] = v & 127; S.flag[t * MAX_STEPS + k] = v >> 7; }));
+    S.lanes = new Array(NUM_LANES).fill(null);
+    (pr.lanes || []).slice(0, NUM_LANES).forEach((ln, l) => {
+      const g = keyG(ln.key);
+      if (g < 0) return;
+      const steps = new Float32Array(MAX_STEPS);
+      steps.set(ln.steps.slice(0, MAX_STEPS));
+      const shapes = new Uint8Array(MAX_STEPS);
+      if (ln.shapes) shapes.set(ln.shapes.slice(0, MAX_STEPS));
+      S.lanes[l] = { g, steps, shapes, mode: ln.mode || 0, len: ln.len, slew: ln.slew, speed: ln.speed, depth: ln.depth, groove: ln.groove };
+    });
+    if (pr.gen) S.gen = { ...S.gen, ...pr.gen, density: pr.gen.density ? pr.gen.density.slice() : S.gen.density };
+    post({ t: 'bundle', msgs: [{ t: 'pat', vel: S.vel.slice(), flag: S.flag.slice() }, ...laneMsgs()] });
+  }
+  if (x >= 1) {
+    visMorph = null;
+    if (m.pr.perf) m.pr.perf.forEach((k, i) => k !== S.perf[i] && setPerf(i, k));
+    curPreset = m.pr.name;
+    visSave();
+    visSync();
+    redrawAll();
+    redraw('pattern');
+    redraw('preset');
+    dirty();
+  } else if ((visTick & 7) === 0) visSync();
+}

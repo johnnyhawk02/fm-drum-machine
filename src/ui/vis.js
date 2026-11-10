@@ -195,6 +195,11 @@ vec3 field(vec2 p, float n){
   v = mix(v, sin(v*(2.+contour*22.)), smoothstep(0.,.6,contour));
   return hsv(vec3(fract(hue + v*spread), sat, (.5+.5*v)*(.35+.65*smoothstep(-.9,.9,v)))) * bright;
 }
+// the mirror fold for the logo: each wedge points up, so the top of the logo meets itself round the centre
+vec2 logoFold(vec2 q, float n){
+  if(n>1.5){ float a=atan(q.y,q.x), r=length(q), s=6.28318/n; a=mod(a+s*.25,s); a=abs(a-s*.5); q=vec2(cos(a),sin(a))*r; q=vec2(q.y,-q.x); }
+  return q + warp*lWarp*.12*vec2(fbm(q*2.+flowT*.3), fbm(q*2.+vec2(3.1,.7)-flowT*.3));
+}
 void main(){
   float asp = uRes.x/uRes.y;
   vec2 p = (vUv-.5)*vec2(asp,1.);
@@ -202,13 +207,12 @@ void main(){
   float n0 = floor(max(seg, 1.)), x = max(seg, 1.)-n0;
   vec3 col = field(p, n0);
   if(x > .001) col = mix(col, field(p, n0+1.), x);
-  // the logo, carried part way through the picture's own zoom, rotation, mirror and warp
+  // the logo goes in before the mirror: it takes the picture's zoom and rotation as far as 'follows' says,
+  // then is always folded by the mirror (blending between segment counts like the pattern), so it repeats round the kaleidoscope
   vec2 p0 = (vUv-.5)*vec2(asp,1.);
-  vec2 pg = p;
-  float nm = floor(seg+.5);
-  if(nm>1.5){ float a=atan(pg.y,pg.x), r=length(pg), s=6.28318/nm; a=mod(a+s*.25,s); a=abs(a-s*.5); pg=vec2(cos(a),sin(a))*r; pg=vec2(pg.y,-pg.x); }
-  pg += warp*.12*vec2(fbm(pg*2.+flowT*.3), fbm(pg*2.+vec2(3.1,.7)-flowT*.3));
-  float lm = logoMask(mix(p0, pg, lWarp));
+  vec2 pl = mix(p0, p, lWarp);
+  float lm = logoMask(logoFold(pl, n0));
+  if(x > .001) lm = mix(lm, logoMask(logoFold(pl, n0+1.)), x);
   // imprint: inside the logo the pattern turns to its opposite colours
   col = mix(col, hueShift(col, .5)*1.15, lm*lImprint);
   float k = uDt*60.;

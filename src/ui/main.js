@@ -67,7 +67,13 @@ async function togglePlay() {
 function buildHeader() {
   const hd = $('hdr');
   hd.innerHTML = '';
-  hd.append(h('div', 'logo', 'fm/dm'));
+  const logo = h('div', 'logo', 'fm/dm');
+  if (!HOST) { // the visualiser is web-only for now (Johnny, 2026-11-10: not in the plugin yet)
+    logo.title = 'visualiser';
+    logo.style.cursor = 'pointer';
+    logo.addEventListener('click', () => openVis());
+  }
+  hd.append(logo);
   hd.append(btn('options', 'sm', () => openOptions()), btn('?', 'sm', () => openHelp()));
   hd.append(btn('quick', 'sm', () => openQuick())); // TEMPORARY quick pad
   const rnd = h('div', 'rnd');

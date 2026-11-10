@@ -246,3 +246,26 @@ input[type=text], input[type=search] { background: transparent; border: 2px soli
 #quick.desk .qgrid { grid-template-columns: repeat(3, 1fr); grid-auto-rows: auto; gap: 12px; }
 #quick.desk .qb { min-height: 68px; font-size: 28px; }
 #quick.desk .qb.flip { display: none; }
+
+/* visualiser: full-screen picture, with its bar and matrix in the LCD look */
+.vis { position: fixed; inset: 0; z-index: 1000; background: #000; }
+.vis[hidden], .vis .vmat[hidden] { display: none; }
+.vis canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.vis.idle { cursor: none; }
+.vis.idle .vbar { display: none; }
+.vis .vbar { position: absolute; left: 14px; top: 14px; display: flex; gap: 6px; padding: 6px; background: var(--lcd);
+  border: 2px solid var(--ink); border-radius: 8px; transform-origin: 0 0; }
+.vis .vmat { position: absolute; right: 14px; top: 14px; width: 470px; max-height: calc(100vh - 28px); overflow: auto;
+  background: var(--lcd); border: 2px solid var(--ink); border-radius: 12px; padding: 8px 12px 10px; transform-origin: 100% 0; font-size: 19px; }
+.vis .vrow { display: grid; grid-template-columns: 150px 1fr repeat(6, 30px); gap: 5px; align-items: center; height: 26px; }
+.vis .vhead { height: 22px; text-transform: uppercase; letter-spacing: .06em; }
+.vis .vhead .vc { border: 0; text-align: center; }
+.vis .vgrp { text-transform: uppercase; letter-spacing: .14em; border-top: 2px solid var(--ink); margin-top: 6px; padding-top: 2px; font-size: 17px; }
+.vis .vn { white-space: nowrap; overflow: hidden; }
+.vis .vb { position: relative; height: 14px; border: 1.5px solid var(--ink); border-radius: 2px; cursor: ew-resize; touch-action: none; }
+.vis .vb i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--dim); }
+.vis .vb b { position: absolute; top: -3px; bottom: -3px; width: 3px; margin-left: -1.5px; background: var(--spot); }
+.vis .cell { position: relative; height: 20px; border: 1.5px solid var(--ink); border-radius: 2px; cursor: ns-resize; touch-action: none; overflow: hidden; }
+.vis .cell i { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: var(--ink); }
+.vis .cell.neg i { bottom: auto; top: 0; }
+.vis .vfoot { margin-top: 8px; font-size: 16px; line-height: 1.1; opacity: .7; }

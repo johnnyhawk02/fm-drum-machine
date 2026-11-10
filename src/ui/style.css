@@ -260,11 +260,11 @@ input[type=text], input[type=search] { background: transparent; border: 2px soli
 .vis .vval { min-width: 92px; text-align: center; padding: 2px 8px; border: 2px solid var(--ink); border-radius: 6px; cursor: ns-resize; }
 .vis .vbar { display: flex; align-items: center; gap: 6px; padding: 6px; background: var(--lcd);
   border: 2px solid var(--ink); border-radius: 8px; }
-.vis .vmat { position: absolute; right: 14px; top: 118px; width: 505px; max-height: calc(100vh - 132px); overflow: auto;
+.vis .vmat { position: absolute; right: 14px; top: 118px; width: 540px; max-height: calc(100vh - 132px); overflow: auto;
   background: var(--lcd); border: 2px solid var(--ink); border-radius: 12px; padding: 8px 12px 10px; transform-origin: 100% 0; font-size: 19px; }
-.vis .vrow { display: grid; grid-template-columns: 150px 1fr repeat(7, 30px); gap: 5px; align-items: center; height: 23px; }
+.vis .vrow { display: grid; grid-template-columns: 150px 1fr repeat(8, 30px); gap: 5px; align-items: center; height: 23px; }
 .vis .vhead { height: 22px; text-transform: uppercase; letter-spacing: .06em; }
-.vis .vhead .vc { border: 0; text-align: center; }
+.vis .vhead .vc { border: 0; text-align: center; letter-spacing: 0; font-size: 16px; }
 .vis .vgrp { text-transform: uppercase; letter-spacing: .14em; border-top: 2px solid var(--ink); margin-top: 6px; padding-top: 2px; font-size: 17px; }
 .vis .vn { white-space: nowrap; overflow: hidden; }
 .vis .vb { position: relative; height: 14px; border: 1.5px solid var(--ink); border-radius: 2px; cursor: ew-resize; touch-action: none; }

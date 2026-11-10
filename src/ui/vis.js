@@ -41,7 +41,7 @@ const VIS_PARAMS = [
   { k: 'lAmt', n: 'logo level', min: 0, max: 1, d: 1 },
   { k: 'lSize', n: 'logo size', min: 0.1, max: 1.6, d: 0.55 },
   { k: 'lDistort', n: 'logo distort', min: 0, max: 1, d: 0 },
-  { k: 'lPinch', n: 'logo pincushion/barrel', min: -1, max: 1, d: 0 },
+  { k: 'lPinch', n: 'logo pincushion', min: -1, max: 1, d: 0 },
   { k: 'lWave', n: 'logo wave', min: 0, max: 1, d: 0 },
   { k: 'lRipple', n: 'logo ripple', min: 0, max: 1, d: 0 },
   { k: 'lStretch', n: 'logo stretch', min: -1, max: 1, d: 0 },
@@ -58,7 +58,7 @@ const VIS_PARAMS = [
   { k: 'gAmt', n: 'goon level', min: 0, max: 1, d: 0 },
   { k: 'gSize', n: 'goon size', min: 0.1, max: 1.6, d: 0.42 },
   { k: 'gDistort', n: 'goon distort', min: 0, max: 1, d: 0 },
-  { k: 'gPinch', n: 'goon pincushion/barrel', min: -1, max: 1, d: 0 },
+  { k: 'gPinch', n: 'goon pincushion', min: -1, max: 1, d: 0 },
   { k: 'gWave', n: 'goon wave', min: 0, max: 1, d: 0 },
   { k: 'gRipple', n: 'goon ripple', min: 0, max: 1, d: 0 },
   { k: 'gStretch', n: 'goon stretch', min: -1, max: 1, d: 0 },
@@ -68,7 +68,7 @@ const VIS_PARAMS = [
   { k: 'gWarp', n: 'goon follows', min: 0, max: 1, d: 0.15 },
   { k: 'gImprint', n: 'goon imprint', min: 0, max: 1, d: 0 },
   { k: 'gFlash', n: 'goon flash', min: 0, max: 1, d: 0 },
-  { k: 'gEvery', n: 'goon flash every (bars)', min: 1, max: 16, d: 4 },
+  { k: 'gEvery', n: 'goon flash every', min: 1, max: 16, d: 4 },
   { k: 'gFade', n: 'goon flash length', min: 0.05, max: 1, d: 0.4 },
 ];
 // the images: logo (l*) below the centre, goon (g*) above it

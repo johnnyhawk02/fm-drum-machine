@@ -11,7 +11,11 @@
 
 const VIS_SRC = [...SHORT, 'img']; // dr1 dr2 dr3 sn cy hh, and the image flash
 const VIS_IMG = 6; // the image-flash source
-const VIS_IMAGES = ['image 1', 'image 2']; // vis.img picks one: the fm/dm logo or the pirate smiley
+const VIS_IMAGES = ['image 1', 'image 2', 'your image']; // vis.img picks one: the fm/dm logo, the pirate smiley, or an upload
+// your own image (uploaded in the matrix), kept in this browser as a PNG data url, already keyed (black on see-through)
+const VIS_UP = 'fmdm.visImage';
+let visUpUrl = (() => { try { return localStorage.getItem(VIS_UP) || ''; } catch { return ''; } })();
+const visImgCount = () => (visUpUrl ? 3 : 2);
 const VIS_N = VIS_SRC.length;
 const VIS_PARAMS = [
   { g: 'colour' },
@@ -81,7 +85,7 @@ function visDefault() {
 function visFix(p) {
   if (!p || !p.base || !p.mod || p.mod.length !== p.base.length) return null;
   if (p.mod.some((row) => row.length > 8)) return null;
-  let keys = VPK.map((P) => P.k), img = p.img === 1 ? 1 : 0, src = (row) => row.slice(0, VIS_N);
+  let keys = VPK.map((P) => P.k), img = [1, 2].includes(p.img) ? p.img : 0, src = (row) => row.slice(0, VIS_N);
   if (p.fx === 2) {
     // one image now: whichever was showing (the goon if its level was up and the logo's wasn't) takes the rows
     keys = VIS_KEYS_V2;
@@ -124,7 +128,7 @@ function visSave() {
 // mirror is always up after a randomise: at least 3 segments, and drums only ever add more
 function visRandomise() {
   const r = Math.random;
-  const img = Math.floor(r() * VIS_IMAGES.length); // which image this time
+  const img = Math.floor(r() * visImgCount()); // which image this time
   const base = VPK.map((P) => {
     const span = P.max - P.min;
     if (P.k === 'fb') return 0.3 + r() * 0.55;
@@ -303,6 +307,7 @@ class VisRenderer {
     // the two image textures: blank until each image has loaded
     this.logo = this.image(LOGO_URL, 325 / 120);
     this.img2 = this.image(IMG2_URL, 640 / 549);
+    this.up = this.image(visUpUrl, 1);
     const b = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, b);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
@@ -319,6 +324,7 @@ class VisRenderer {
     const gl = this.gl, im = { tex: gl.createTexture(), asp };
     gl.bindTexture(gl.TEXTURE_2D, im.tex);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4));
+    if (!url) return im;
     const img = new Image();
     img.onload = () => {
       gl.bindTexture(gl.TEXTURE_2D, im.tex);
@@ -385,7 +391,7 @@ class VisRenderer {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
   bindImg(P, n) {
-    const gl = this.gl, im = n === 1 ? this.img2 : this.logo;
+    const gl = this.gl, im = n === 1 ? this.img2 : n === 2 && visUpUrl ? this.up : this.logo;
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, im.tex);
     gl.uniform1i(P.loc.uImg, 1);
@@ -526,12 +532,23 @@ function visBuild() {
         // which image: image 1 or image 2 (the rows below are its controls)
         visImgBtn = btn('', 'sm', () => {
           visMorph = null;
-          vis.img = ((vis.img || 0) + 1) % VIS_IMAGES.length;
+          vis.img = ((vis.img || 0) + 1) % visImgCount();
           visSave();
           visDrawImg();
         });
         visImgBtn.title = 'which image the controls below drive';
-        g.append(' ', visImgBtn);
+        const up = btn('upload…', 'sm', () => file.click());
+        up.title = 'use your own image: black on white works best (white turns see-through)';
+        const file = h('input');
+        file.type = 'file';
+        file.accept = 'image/*';
+        file.hidden = true;
+        file.onchange = () => {
+          const f = file.files && file.files[0];
+          file.value = '';
+          if (f) visUpload(f);
+        };
+        g.append(' ', visImgBtn, ' ', up, file);
       }
       mat.append(g);
       continue;
@@ -633,6 +650,53 @@ function visSyncRow(i) {
   for (let s = 0; s < VIS_N; s++) visSyncCell(i, s);
 }
 let visImgBtn = null;
+// an uploaded image: keyed like the built-in ones (dark ink stays, white goes see-through), cropped to the drawing,
+// at most 640 px wide, then saved in this browser and shown as 'your image'
+function visUpload(f) {
+  const url = URL.createObjectURL(f);
+  const img = new Image();
+  img.onerror = () => { URL.revokeObjectURL(url); toast('could not read that image'); };
+  img.onload = () => {
+    URL.revokeObjectURL(url);
+    const k = Math.min(1, 1024 / Math.max(img.width, img.height));
+    const w = Math.max(1, Math.round(img.width * k)), hg = Math.max(1, Math.round(img.height * k));
+    const c = h('canvas');
+    c.width = w;
+    c.height = hg;
+    const x = c.getContext('2d');
+    x.drawImage(img, 0, 0, w, hg);
+    const d = x.getImageData(0, 0, w, hg), px = d.data;
+    let x0 = w, y0 = hg, x1 = -1, y1 = -1;
+    for (let i = 0; i < w * hg; i++) {
+      const o = i * 4, l = 0.299 * px[o] + 0.587 * px[o + 1] + 0.114 * px[o + 2];
+      const a = Math.round(clamp((190 - l) / 130, 0, 1) * px[o + 3]);
+      px[o] = px[o + 1] = px[o + 2] = 0;
+      px[o + 3] = a;
+      if (a > 24) {
+        const xx = i % w, yy = (i / w) | 0;
+        if (xx < x0) x0 = xx;
+        if (xx > x1) x1 = xx;
+        if (yy < y0) y0 = yy;
+        if (yy > y1) y1 = yy;
+      }
+    }
+    if (x1 < 0) return toast('nothing dark in that image: use black on white');
+    x.putImageData(d, 0, 0);
+    const cw = x1 - x0 + 1, ch = y1 - y0 + 1, s = Math.min(1, 640 / cw);
+    const o = h('canvas');
+    o.width = Math.max(1, Math.round(cw * s));
+    o.height = Math.max(1, Math.round(ch * s));
+    o.getContext('2d').drawImage(c, x0, y0, cw, ch, 0, 0, o.width, o.height);
+    visUpUrl = o.toDataURL('image/png');
+    try { localStorage.setItem(VIS_UP, visUpUrl); } catch { toast('image is in use but too big to keep after a reload'); }
+    if (visR) visR.up = visR.image(visUpUrl, o.width / o.height);
+    visMorph = null;
+    vis.img = 2;
+    visSave();
+    visDrawImg();
+  };
+  img.src = url;
+}
 function visDrawImg() {
   if (visImgBtn) visImgBtn.textContent = VIS_IMAGES[vis.img || 0];
 }

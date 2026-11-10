@@ -35,7 +35,7 @@ const VIS_PARAMS = [
   { k: 'scan', n: 'scanlines', min: 0, max: 1, d: 0.15 },
   // the fm/dm logo, drawn over the picture; its feedback amount is how much of it goes into the trails
   { g: 'logo' },
-  { k: 'lAmt', n: 'logo level', min: 0, max: 1, d: 0.7 },
+  { k: 'lAmt', n: 'logo level', min: 0, max: 1, d: 1 },
   { k: 'lSize', n: 'logo size', min: 0.1, max: 1.6, d: 0.55 },
   { k: 'lRot', n: 'logo rotate', min: -3.1416, max: 3.1416, d: 0 },
   { k: 'lHue', n: 'logo hue', min: 0, max: 1, d: 0.05, wrap: true },
@@ -96,8 +96,8 @@ function visRandomise() {
     if (P.k === 'fb') return 0.3 + r() * 0.55;
     if (P.k === 'bright') return 0.8 + r() * 0.5;
     if (P.k === 'chroma') return r() * 0.008;
-    // the logo: subtle every time (faint, mid size, mostly upright, gentle follow/imprint/flash)
-    if (P.k === 'lAmt') return 0.25 + r() * 0.3;
+    // the logo: solid, with subtle effects every time (mid size, mostly upright, gentle follow/imprint/flash)
+    if (P.k === 'lAmt') return 1;
     if (P.k === 'lSize') return 0.35 + r() * 0.35;
     if (P.k === 'lRot') return r() < 0.8 ? 0 : (r() - 0.5) * 0.5;
     if (P.k === 'lSat') return r() * 0.5;
@@ -121,7 +121,7 @@ function visRandomise() {
     if (k === 'seg') a = Math.abs(a);
     if (k === 'flow' || k === 'zoom' || k === 'rot') a *= 0.5; // big jumps here look like glitches
     if (k[0] === 'l' && k !== 'lEvery' || s === VIS_N - 1) a *= 0.35; // drums move the logo gently, and the logo flash moves the picture gently
-    if (k === 'lEvery') a = 0;
+    if (k === 'lEvery' || k === 'lAmt') a = 0; // the logo stays solid
     mod[d][s] = Math.round(a * 100) / 100;
   }
   vis = { base, mod, depth: vis.depth, slew: vis.slew };

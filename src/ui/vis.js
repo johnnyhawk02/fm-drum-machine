@@ -1,7 +1,7 @@
 // fm/dm — visualiser: click the logo for a full-screen feedback-shader picture. It is Johnny's Slow Signal video
 // synth (same scene, feedback and signal shaders, same visual controls), but its patch matrix takes the six
 // drums as sources in place of the LFOs and the audio input: each drum's envelope, from its level meter. The
-// image (the fm/dm logo or the goon artwork, picked with the image button) sits in the centre of the picture:
+// image (image 1, the fm/dm logo, or image 2, the pirate smiley, picked with the image button) sits in the centre of the picture:
 // the drums (and everything in the matrix) move it, it follows the picture's geometry and imprints on its
 // pattern, and every few bars it flashes into the feedback trails; that flash is the seventh matrix source (img),
 // so it can move everything else too. Randomise picture picks the image; a morph to a preset with the other image
@@ -11,7 +11,7 @@
 
 const VIS_SRC = [...SHORT, 'img']; // dr1 dr2 dr3 sn cy hh, and the image flash
 const VIS_IMG = 6; // the image-flash source
-const VIS_IMAGES = ['logo', 'goon']; // vis.img picks one
+const VIS_IMAGES = ['image 1', 'image 2']; // vis.img picks one: the fm/dm logo or the pirate smiley
 const VIS_N = VIS_SRC.length;
 const VIS_PARAMS = [
   { g: 'colour' },
@@ -37,7 +37,7 @@ const VIS_PARAMS = [
   { g: 'signal' },
   { k: 'chroma', n: 'chroma split', min: 0, max: 0.03, d: 0.004 },
   { k: 'scan', n: 'scanlines', min: 0, max: 1, d: 0.15 },
-  // the image (logo or goon), drawn over the picture
+  // the image (image 1: the logo, image 2: the pirate smiley), drawn over the picture
   { g: 'image' },
   { k: 'lAmt', n: 'image level', min: 0, max: 1, d: 1 },
   { k: 'lSize', n: 'image size', min: 0.1, max: 1.6, d: 0.55 },
@@ -140,7 +140,7 @@ function visRandomise() {
     if (q === 'Pinch' || q === 'Stretch') return r() < 0.35 ? (r() - 0.5) * 0.9 : 0;
     if (q === 'Sat') return 0.55 + r() * 0.45;
     if (q === 'Bright') return 1 + r() * 0.4;
-    if (q === 'Warp') return r() * (img === 1 ? 0.2 : 0.35); // the goon is wide: it folds up sooner
+    if (q === 'Warp') return r() * 0.35;
     if (q === 'Imprint') return r() * 0.2;
     if (q === 'Flash') return 0.15 + r() * 0.3;
     if (q === 'Every') return [4, 8, 8, 16][Math.floor(r() * 4)];
@@ -300,9 +300,9 @@ class VisRenderer {
     this.half = !!gl.getExtension('EXT_color_buffer_float');
     this.scene = this.prog(VIS_FS_SCENE);
     this.post = this.prog(VIS_FS_POST);
-    // the logo and goon textures: blank until each image has loaded
+    // the two image textures: blank until each image has loaded
     this.logo = this.image(LOGO_URL, 325 / 120);
-    this.goon = this.image(GOON_URL, 720 / 403);
+    this.img2 = this.image(IMG2_URL, 640 / 549);
     const b = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, b);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
@@ -385,7 +385,7 @@ class VisRenderer {
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
   bindImg(P, n) {
-    const gl = this.gl, im = n === 1 ? this.goon : this.logo;
+    const gl = this.gl, im = n === 1 ? this.img2 : this.logo;
     gl.activeTexture(gl.TEXTURE1);
     gl.bindTexture(gl.TEXTURE_2D, im.tex);
     gl.uniform1i(P.loc.uImg, 1);
@@ -523,7 +523,7 @@ function visBuild() {
     if (P.g) {
       const g = h('div', 'vgrp', P.g);
       if (P.g === 'image') {
-        // which image: logo or goon (the rows below are its controls)
+        // which image: image 1 or image 2 (the rows below are its controls)
         visImgBtn = btn('', 'sm', () => {
           visMorph = null;
           vis.img = ((vis.img || 0) + 1) % VIS_IMAGES.length;

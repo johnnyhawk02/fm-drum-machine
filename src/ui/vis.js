@@ -41,7 +41,6 @@ const VIS_PARAMS = [
   { k: 'lHue', n: 'logo hue', min: 0, max: 1, d: 0.05, wrap: true },
   { k: 'lSat', n: 'logo saturation', min: 0, max: 1, d: 0 },
   { k: 'lBright', n: 'logo brightness', min: 0, max: 2, d: 1 },
-  { k: 'lTrail', n: 'logo feedback', min: 0, max: 1, d: 0.35 },
   { k: 'lWarp', n: 'logo follows', min: 0, max: 1, d: 0.3 },
   { k: 'lImprint', n: 'logo imprint', min: 0, max: 1, d: 0.25 },
   { k: 'lFlash', n: 'logo flash', min: 0, max: 1, d: 0.8 },
@@ -62,7 +61,13 @@ function visDefault() {
 }
 // a patch saved before a control existed gets that control's default (new controls are added at the end)
 function visFix(p) {
-  if (!p || !p.base || !p.mod || p.base.length > VPK.length || p.mod.length !== p.base.length) return null;
+  if (!p || !p.base || !p.mod || p.mod.length !== p.base.length) return null;
+  // patches from when the logo had a 'logo feedback' row (after brightness): drop it
+  if (p.base.length === VPK.length + 1) {
+    const i = VIDX.lBright + 1;
+    p = { ...p, base: p.base.filter((_, j) => j !== i), mod: p.mod.filter((_, j) => j !== i) };
+  }
+  if (p.base.length > VPK.length) return null;
   if (p.mod.some((row) => row.length > VIS_N)) return null;
   const base = p.base.slice(), mod = p.mod.map((r) => [...r, ...new Array(VIS_N - r.length).fill(0)]); // the logo source came later
   for (let i = base.length; i < VPK.length; i++) {
@@ -94,7 +99,7 @@ function visRandomise() {
     if (P.k === 'lAmt') return 0.5 + r() * 0.45; // the logo stays in
     if (P.k === 'lSize') return 0.3 + r() * 0.6;
     if (P.k === 'lRot') return r() < 0.7 ? 0 : (r() - 0.5) * 1.2;
-    if (P.k === 'lSat' || P.k === 'lTrail' || P.k === 'lWarp' || P.k === 'lImprint') return r();
+    if (P.k === 'lSat' || P.k === 'lWarp' || P.k === 'lImprint') return r();
     if (P.k === 'lFlash') return 0.4 + r() * 0.6;
     if (P.k === 'lEvery') return [1, 2, 4, 4, 8, 8, 16][Math.floor(r() * 7)];
     if (P.k === 'seg') return 3 + Math.floor(r() * 8);
@@ -143,7 +148,7 @@ const VIS_VS = `#version 300 es
 in vec2 a; out vec2 vUv; void main(){ vUv = a*.5+.5; gl_Position = vec4(a,0.,1.); }`;
 // the logo: its alpha as a mask, sharpened (the artwork is small), centred, sized in screen heights
 const VIS_LOGO_GLSL = `
-uniform sampler2D uLogo; uniform float uLogoAsp, lAmt, lSize, lRot, lHue, lSat, lBright, lTrail, lImprint, lWarp, uFlash;
+uniform sampler2D uLogo; uniform float uLogoAsp, lAmt, lSize, lRot, lHue, lSat, lBright, lImprint, lWarp, uFlash;
 vec3 lhsv(vec3 c){ vec3 p=abs(fract(c.xxx+vec3(1.,2./3.,1./3.))*6.-3.); return c.z*mix(vec3(1.), clamp(p-1.,0.,1.), c.y); }
 // p: centred screen position (x scaled by the aspect); returns the bare shape, 0..1
 float logoMask(vec2 p){
@@ -208,19 +213,17 @@ void main(){
   float f = pow(fb0, k);
   float w = (1.-f)*(1.-.55*fb0)/(1.-fb0);
   vec3 outc = clamp(col*w + prev*f, 0., 1.);
-  outc = mix(outc, logoCol(), clamp(lm*(lAmt*lTrail + uFlash), 0., 1.)); // into the trails, and the flash
+  outc = mix(outc, logoCol(), clamp(lm*(lAmt + uFlash), 0., 1.)); // only ever through the effects: into the trails, with the flash
   o = vec4(outc, 1.);
 }`;
 const VIS_FS_POST = `#version 300 es
 precision highp float;
 in vec2 vUv; out vec4 o;
 uniform sampler2D uSrc; uniform vec2 uRes; uniform float chroma, scan, uLines;
-${VIS_LOGO_GLSL}
 void main(){
   vec2 d = (vUv-.5)*chroma*4.;
   vec3 c = vec3(texture(uSrc, vUv+d).r, texture(uSrc, vUv).g, texture(uSrc, vUv-d).b);
   float l = .5+.5*sin(vUv.y*3.14159*uLines);
-  c = mix(c, logoCol(), logoMask((vUv-.5)*vec2(uRes.x/uRes.y,1.))*lAmt*(1.-lTrail));
   c *= 1. - scan*.55*l;
   vec2 w = vUv-.5; c *= 1. - dot(w,w)*.55;
   o = vec4(c, 1.);
@@ -344,7 +347,6 @@ class VisRenderer {
     gl.uniform1i(P.loc.uSrc, 0);
     gl.uniform2f(P.loc.uRes, this.w, this.h);
     for (const k in P.loc) if (k in u) gl.uniform1f(P.loc[k], u[k]);
-    this.bindLogo(P);
     gl.uniform1f(P.loc.uLines, this.h / 2);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
     this.cur = nx;

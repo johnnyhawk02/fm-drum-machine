@@ -309,9 +309,11 @@ function visBuild() {
   const del = btn('del', 'sm', visDeleteScene);
   del.title = 'delete the shown preset';
   const sv = btn('save', 'sm', visSaveScene);
+  const ex = btn('export presets', 'sm', visExport);
+  ex.title = 'download your visualiser presets (picture + sound) as a file, to make factory presets';
   sv.title = 'save the picture and the sound as a new preset';
   bar.append(btn('randomise picture', 'sm', () => { visMorph = null; visRandomise(); }), btn('randomise everything', 'sm', () => { visMorph = null; runRandom('all'); }),
-    sv, btn('‹', 'sm', () => visStep(-1)), name, btn('›', 'sm', () => visStep(1)), mt, auto, del, mbtn, btn('✕', 'sm', visClose));
+    sv, btn('‹', 'sm', () => visStep(-1)), name, btn('›', 'sm', () => visStep(1)), mt, auto, del, ex, mbtn, btn('✕', 'sm', visClose));
   visEl.append(bar, mat);
 
   // matrix: a row per visual control (base bar with its live value, then one cell per drum)
@@ -514,30 +516,50 @@ const visOpt = (() => {
   try { return { morph: 4, auto: false, ...JSON.parse(localStorage.getItem('fmdm.visOpt') || '{}') }; } catch { return { morph: 4, auto: false }; }
 })();
 const visOptSave = () => { try { localStorage.setItem('fmdm.visOpt', JSON.stringify(visOpt)); } catch {} };
-function visScenes() {
+// yours (saved in this browser) first, then the factory ones (presets/vis/*.json, built in)
+function visMine() {
   try { return JSON.parse(localStorage.getItem(VIS_LS) || '[]'); } catch { return []; }
+}
+function visScenes() {
+  const mine = visMine();
+  const names = new Set(mine.map((p) => p.name));
+  return [...mine, ...BUILTIN_VIS.filter((p) => !names.has(p.name)).map((p) => ({ ...p, builtin: true }))];
+}
+// downloads your presets in the same format as presets/vis/*.json, so a file can be dropped in there as factory presets
+function visExport() {
+  const mine = visMine();
+  if (!mine.length) return toast('save a preset first');
+  const a = h('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify({ app: 'fm/dm', kind: 'visualiser', v: PRESET_V, presets: mine }, null, 1)], { type: 'application/json' }));
+  a.download = 'fm-dm-vis-presets.json';
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 let visCur = -1; // index of the scene last loaded or saved
 let visMorph = null; // { t0, dur, vFrom, vTo, sFrom, sTo, pr, half }
 let visHold = 0; // auto: time spent on the current scene
 const visClone = (o) => JSON.parse(JSON.stringify(o));
 function visSaveScene() {
-  const list = visScenes();
+  const mine = visMine();
+  const all = visScenes();
   let name;
   do name = presetName((Math.random() * 1e9) | 0);
-  while (list.some((p) => p.name === name));
-  list.push({ name, vis: visClone(vis), sound: capture(name) });
-  try { localStorage.setItem(VIS_LS, JSON.stringify(list)); } catch { return toast('could not save (storage full or blocked)'); }
-  visCur = list.length - 1;
+  while (all.some((p) => p.name === name));
+  mine.push({ name, vis: visClone(vis), sound: capture(name) });
+  try { localStorage.setItem(VIS_LS, JSON.stringify(mine)); } catch { return toast('could not save (storage full or blocked)'); }
+  visCur = mine.length - 1;
   visShowName(name);
 }
 function visDeleteScene() {
   const list = visScenes();
-  if (visCur < 0 || visCur >= list.length) return;
-  list.splice(visCur, 1);
-  try { localStorage.setItem(VIS_LS, JSON.stringify(list)); } catch {}
-  visCur = Math.min(visCur, list.length - 1);
-  visShowName(visCur >= 0 ? list[visCur].name : '');
+  const sc = list[visCur];
+  if (!sc) return;
+  if (sc.builtin) return toast('factory presets cannot be deleted');
+  const mine = visMine().filter((p) => p.name !== sc.name);
+  try { localStorage.setItem(VIS_LS, JSON.stringify(mine)); } catch {}
+  const now = visScenes();
+  visCur = Math.min(visCur, now.length - 1);
+  visShowName(visCur >= 0 ? now[visCur].name : '');
 }
 function visShowName(n) {
   if (visEl) visEl.querySelector('.vname').textContent = n || 'no presets';

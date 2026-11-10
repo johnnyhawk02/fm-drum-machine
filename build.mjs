@@ -35,9 +35,9 @@ let commit = '';
 try { commit = execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim(); } catch {}
 const ver = new Date().toISOString().slice(0, 16).replace('T', ' ') + (commit ? ' ' + commit : '');
 const logo = readFileSync(new URL('src/static/logo.png', import.meta.url)).toString('base64');
-const goon = readFileSync(new URL('src/static/goon.png', import.meta.url)).toString('base64');
+const img2 = readFileSync(new URL('src/static/image2.png', import.meta.url)).toString('base64');
 const esc = (s) => s.replace(/<\/script/gi, '<\\/script');
-const app = `(() => {\n'use strict';\n${engine}\nconst WORKLET_SRC = ${JSON.stringify(worklet)};\nconst BUILTIN_PRESETS = ${JSON.stringify(presets)};\nconst BUILTIN_VIS = ${JSON.stringify(visPresets)};\nconst LOGO_URL = ${JSON.stringify('data:image/png;base64,' + logo)};\nconst GOON_URL = ${JSON.stringify('data:image/png;base64,' + goon)};\nconst APP_VER = ${JSON.stringify(ver)};\n${ui}\n})();`;
+const app = `(() => {\n'use strict';\n${engine}\nconst WORKLET_SRC = ${JSON.stringify(worklet)};\nconst BUILTIN_PRESETS = ${JSON.stringify(presets)};\nconst BUILTIN_VIS = ${JSON.stringify(visPresets)};\nconst LOGO_URL = ${JSON.stringify('data:image/png;base64,' + logo)};\nconst IMG2_URL = ${JSON.stringify('data:image/png;base64,' + img2)};\nconst APP_VER = ${JSON.stringify(ver)};\n${ui}\n})();`;
 const font = readFileSync(new URL('src/static/vt323-latin.woff2', import.meta.url)).toString('base64');
 const fontCss = `@font-face { font-family: 'VT323'; font-style: normal; font-weight: 400; font-display: block; src: url(data:font/woff2;base64,${font}) format('woff2'); }\n`;
 const page = read('src/index.src.html')

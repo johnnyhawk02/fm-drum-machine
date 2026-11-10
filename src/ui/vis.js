@@ -40,7 +40,11 @@ const VIS_PARAMS = [
   { g: 'logo' },
   { k: 'lAmt', n: 'logo level', min: 0, max: 1, d: 1 },
   { k: 'lSize', n: 'logo size', min: 0.1, max: 1.6, d: 0.55 },
-  { k: 'lRot', n: 'logo rotate', min: -3.1416, max: 3.1416, d: 0 },
+  { k: 'lDistort', n: 'logo distort', min: 0, max: 1, d: 0 },
+  { k: 'lPinch', n: 'logo pincushion/barrel', min: -1, max: 1, d: 0 },
+  { k: 'lWave', n: 'logo wave', min: 0, max: 1, d: 0 },
+  { k: 'lRipple', n: 'logo ripple', min: 0, max: 1, d: 0 },
+  { k: 'lStretch', n: 'logo stretch', min: -1, max: 1, d: 0 },
   { k: 'lHue', n: 'logo hue', min: 0, max: 1, d: 0.05, wrap: true },
   { k: 'lSat', n: 'logo saturation', min: 0, max: 1, d: 0 },
   { k: 'lBright', n: 'logo brightness', min: 0, max: 2, d: 1 },
@@ -53,7 +57,11 @@ const VIS_PARAMS = [
   { g: 'goon' },
   { k: 'gAmt', n: 'goon level', min: 0, max: 1, d: 0 },
   { k: 'gSize', n: 'goon size', min: 0.1, max: 1.6, d: 0.42 },
-  { k: 'gRot', n: 'goon rotate', min: -3.1416, max: 3.1416, d: 0 },
+  { k: 'gDistort', n: 'goon distort', min: 0, max: 1, d: 0 },
+  { k: 'gPinch', n: 'goon pincushion/barrel', min: -1, max: 1, d: 0 },
+  { k: 'gWave', n: 'goon wave', min: 0, max: 1, d: 0 },
+  { k: 'gRipple', n: 'goon ripple', min: 0, max: 1, d: 0 },
+  { k: 'gStretch', n: 'goon stretch', min: -1, max: 1, d: 0 },
   { k: 'gHue', n: 'goon hue', min: 0, max: 1, d: 0.05, wrap: true },
   { k: 'gSat', n: 'goon saturation', min: 0, max: 1, d: 0 },
   { k: 'gBright', n: 'goon brightness', min: 0, max: 2, d: 1 },
@@ -67,6 +75,11 @@ const VIS_PARAMS = [
 const VIS_IMGS = ['l', 'g'];
 const visImgKey = (k) => VIS_IMGS.includes(k[0]) && k !== 'lEvery' && k !== 'gEvery';
 const VPK = VIS_PARAMS.filter((p) => p.k);
+// patches were saved by row position. Before the image effects (fx: 2) the rows were these, and older ones are a
+// prefix of them (logo only, or with a 'logo feedback' row after logo brightness)
+const VIS_KEYS_V1 = ['hue', 'spread', 'sat', 'bright', 'zoom', 'rot', 'seg', 'shape', 'scale', 'warp', 'contour', 'flow',
+  'fb', 'fbZoom', 'fbRot', 'fbHue', 'chroma', 'scan',
+  ...['l', 'g'].flatMap((c) => ['Amt', 'Size', 'Rot', 'Hue', 'Sat', 'Bright', 'Warp', 'Imprint', 'Flash', 'Every', 'Fade'].map((q) => c + q))];
 const VIDX = Object.fromEntries(VPK.map((p, i) => [p.k, i]));
 
 function visDefault() {
@@ -76,24 +89,29 @@ function visDefault() {
   set('rot', 1, 0.08); set('warp', 2, 0.25);
   set('hue', 3, 0.15); set('chroma', 3, 0.25); // snare shifts colour and splits it
   set('contour', 4, 0.4); set('scan', 5, 0.4); set('fbRot', 5, 0.2);
-  return { base: VPK.map((p) => p.d), mod, depth: 1, slew: 0.03 };
+  return { fx: 2, base: VPK.map((p) => p.d), mod, depth: 1, slew: 0.03 };
 }
-// a patch saved before a control existed gets that control's default (new controls are added at the end)
+// a patch saved before a control existed gets that control's default; older patches are matched up by row name
 function visFix(p) {
   if (!p || !p.base || !p.mod || p.mod.length !== p.base.length) return null;
-  // patches from when the logo had a 'logo feedback' row (after brightness): drop it
-  if (p.base.length === VPK.length + 1) {
-    const i = VIDX.lBright + 1;
-    p = { ...p, base: p.base.filter((_, j) => j !== i), mod: p.mod.filter((_, j) => j !== i) };
-  }
-  if (p.base.length > VPK.length) return null;
   if (p.mod.some((row) => row.length > VIS_N)) return null;
-  const base = p.base.slice(), mod = p.mod.map((r) => [...r, ...new Array(VIS_N - r.length).fill(0)]); // the logo and goon sources came later
-  for (let i = base.length; i < VPK.length; i++) {
-    base.push(VPK[i].d);
-    mod.push(new Array(VIS_N).fill(0));
+  let keys = VPK.map((P) => P.k);
+  if (p.fx !== 2) {
+    keys = VIS_KEYS_V1;
+    const logoOnly = keys.indexOf('gAmt');
+    if (p.base.length === logoOnly + 1) { // with the old 'logo feedback' row
+      const i = keys.indexOf('lBright') + 1;
+      keys = [...keys.slice(0, i), '', ...keys.slice(i, logoOnly)];
+    }
   }
-  return { ...p, base, mod, depth: p.depth ?? 1, slew: p.slew ?? 0.03 };
+  if (p.base.length > keys.length) return null;
+  const at = Object.fromEntries(keys.slice(0, p.base.length).map((k, i) => [k, i]));
+  const base = VPK.map((P) => (P.k in at ? p.base[at[P.k]] : P.d));
+  const mod = VPK.map((P) => {
+    const row = P.k in at ? p.mod[at[P.k]] : [];
+    return [...row, ...new Array(VIS_N - row.length).fill(0)]; // the logo and goon sources came later
+  });
+  return { ...p, fx: 2, base, mod, depth: p.depth ?? 1, slew: p.slew ?? 0.03 };
 }
 function visLoad() {
   try {
@@ -123,7 +141,9 @@ function visRandomise() {
     if (P.k[0] === off && (q === 'Amt' || q === 'Flash' || q === 'Imprint')) return 0;
     if (q === 'Amt') return 1;
     if (q === 'Size') return 0.3 + r() * 0.3;
-    if (q === 'Rot') return r() < 0.8 ? 0 : (r() - 0.5) * 0.5;
+    // image effects: a couple of them each time, gently
+    if (q === 'Distort' || q === 'Wave' || q === 'Ripple') return r() < 0.35 ? r() * 0.45 : 0;
+    if (q === 'Pinch' || q === 'Stretch') return r() < 0.35 ? (r() - 0.5) * 0.9 : 0;
     if (q === 'Sat') return 0.55 + r() * 0.45;
     if (q === 'Bright') return 1 + r() * 0.4;
     if (q === 'Warp') return r() * (P.k === 'gWarp' ? 0.2 : 0.35); // the goon is wide: it folds up sooner
@@ -154,7 +174,7 @@ function visRandomise() {
     if (k[0] === off && visImgKey(k)) a = 0;
     mod[d][s] = Math.round(a * 100) / 100;
   }
-  vis = { base, mod, depth: vis.depth, slew: vis.slew };
+  vis = { fx: 2, base, mod, depth: vis.depth, slew: vis.slew };
   visSave();
   visSync();
 }
@@ -187,13 +207,19 @@ in vec2 a; out vec2 vUv; void main(){ vUv = a*.5+.5; gl_Position = vec4(a,0.,1.)
 // below the centre and the goon just above it
 const VIS_LOGO_GLSL = `
 uniform sampler2D uLogo, uGoon; uniform float uLogoAsp, uGoonAsp, uFlash, uFlashG, uBoth;
-uniform float lAmt, lSize, lRot, lHue, lSat, lBright, lImprint, lWarp;
-uniform float gAmt, gSize, gRot, gHue, gSat, gBright, gImprint, gWarp;
+uniform float lAmt, lSize, lHue, lSat, lBright, lImprint, lWarp, lDistort, lPinch, lWave, lRipple, lStretch;
+uniform float gAmt, gSize, gHue, gSat, gBright, gImprint, gWarp, gDistort, gPinch, gWave, gRipple, gStretch;
 vec3 lhsv(vec3 c){ vec3 p=abs(fract(c.xxx+vec3(1.,2./3.,1./3.))*6.-3.); return c.z*mix(vec3(1.), clamp(p-1.,0.,1.), c.y); }
-// p: centred screen position (x scaled by the aspect), relative to the image's centre; returns the bare shape, 0..1
-float imgMask(sampler2D tx, float asp, vec2 p, float sz, float rt){
-  float c=cos(rt), s=sin(rt);
-  p = mat2(c,s,-s,c)*p / max(sz, .01);
+// p: centred screen position (x scaled by the aspect), relative to the image's centre; returns the bare shape, 0..1.
+// fx: distort (noise), pincushion (+) / barrel (-), wave, ripple; st: stretch wide (+) or tall (-)
+float imgMask(sampler2D tx, float asp, vec2 p, float sz, vec4 fx, float st){
+  p = p / max(sz, .01);
+  p *= vec2(exp(-.6*st), exp(.6*st));
+  // (each stays one-to-one, so no ghost copies: the edge stays put and the middle shrinks or swells)
+  p *= pow((1. + 4.*dot(p, p))*.5, -fx.y*.4);
+  p += fx.z*vec2(.06*sin(p.y*26. + flowT*2.), .03*sin(p.x*13. - flowT*1.4));
+  p += normalize(p + 1e-5)*fx.w*.02*sin(length(p)*45. - flowT*3.);
+  p += fx.x*.1*vec2(fbm(p*7. + flowT*.4), fbm(p*7. + vec2(4.2,1.7) - flowT*.4));
   vec2 t = vec2(p.x + .5, .5 - p.y*asp);
   if (t.x < 0. || t.x > 1. || t.y < 0. || t.y > 1.) return 0.;
   return smoothstep(.3, .7, texture(tx, t).a);
@@ -212,13 +238,13 @@ precision highp float;
 in vec2 vUv; out vec4 o;
 uniform sampler2D uPrev; uniform vec2 uRes; uniform float uDt;
 uniform float hue, spread, sat, bright, zoom, rot, seg, shape, scale, warp, contour, flowT, fb, fbZoom, fbRot, fbHue;
-${VIS_LOGO_GLSL}
 mat2 R(float a){ float c=cos(a), s=sin(a); return mat2(c,-s,s,c); }
 float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1,311.7)))*43758.5453); }
 float noise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
   return mix(mix(hash(i),hash(i+vec2(1,0)),f.x), mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x), f.y)*2.-1.; }
 float fbm(vec2 p){ float v=0., a=.5; for(int i=0;i<4;i++){ v+=a*noise(p); p=p*2.03+17.1; a*=.5; } return v; }
 vec3 hsv(vec3 c){ vec3 p=abs(fract(c.xxx+vec3(1.,2./3.,1./3.))*6.-3.); return c.z*mix(vec3(1.), clamp(p-1.,0.,1.), c.y); }
+${VIS_LOGO_GLSL}
 vec3 hueShift(vec3 c, float a){
   const mat3 toY = mat3(.299,.596,.211, .587,-.274,-.523, .114,-.322,.312);
   const mat3 toR = mat3(1.,1.,1., .956,-.272,-1.106, .621,-.647,1.703);
@@ -252,8 +278,8 @@ void main(){
   // centred on itself
   vec2 p0 = (vUv-.5)*vec2(asp,1.);
   vec2 ql = p0 - logoAt(), qg = p0 - goonAt();
-  float lm = imgMask(uLogo, uLogoAsp, mix(ql, follow(ql), lWarp), lSize, lRot);
-  float gm = imgMask(uGoon, uGoonAsp, mix(qg, follow(qg), gWarp), gSize, gRot);
+  float lm = imgMask(uLogo, uLogoAsp, mix(ql, follow(ql), lWarp), lSize, vec4(lDistort, lPinch, lWave, lRipple), lStretch);
+  float gm = imgMask(uGoon, uGoonAsp, mix(qg, follow(qg), gWarp), gSize, vec4(gDistort, gPinch, gWave, gRipple), gStretch);
   // imprint: inside the logo (and the goon) the pattern turns to its opposite colours
   col = mix(col, hueShift(col, .5)*1.15, lm*lImprint);
   col = mix(col, hueShift(col, .5)*1.15, gm*gImprint);

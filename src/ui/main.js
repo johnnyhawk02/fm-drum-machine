@@ -67,13 +67,7 @@ async function togglePlay() {
 function buildHeader() {
   const hd = $('hdr');
   hd.innerHTML = '';
-  const logo = h('div', 'logo', 'fm/dm');
-  if (!HOST) { // the visualiser is web-only for now (Johnny, 2026-11-10: not in the plugin yet)
-    logo.title = 'visualiser';
-    logo.style.cursor = 'pointer';
-    logo.addEventListener('click', () => openVis());
-  }
-  hd.append(logo);
+  hd.append(h('div', 'logo', 'fm/dm'));
   hd.append(btn('options', 'sm', () => openOptions()), btn('?', 'sm', () => openHelp()));
   hd.append(btn('quick', 'sm', () => openQuick())); // TEMPORARY quick pad
   const rnd = h('div', 'rnd');
@@ -177,6 +171,8 @@ function boot() {
   if (typeof initMidi === 'function') initMidi();
   requestAnimationFrame(frame);
   document.addEventListener('contextmenu', (e) => e.preventDefault());
+  // the visualiser was removed (2026-11-16): clear what it kept in this browser
+  try { for (const k of ['fmdm.visPresets', 'fmdm.visOpt', 'fmdm.visHidden', 'fmdm.visImage']) localStorage.removeItem(k); } catch {}
   // update at startup: check for a new service worker straight away (bypassing the HTTP cache), and when
   // a new one takes over, reload once so the new version is what runs
   if ('serviceWorker' in navigator && /^(https:|http:\/\/localhost)/.test(location.href)) {
@@ -187,6 +183,6 @@ function boot() {
     });
     navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((r) => r.update()).catch(() => {});
   }
-  window.__fmdm = { M, NV_, get ctx() { return ctx; }, get irConv() { return irConv; }, get node() { return node; }, setG, S, presetName, presetNameRaw, isRude, NAME_WORDS, applyPreset, BUILTIN_PRESETS, togglePlay, showPage, runRandom, measureHit, NP, P, get vis() { return typeof vis !== "undefined" ? vis : null; }, get visOpt() { return typeof visOpt !== "undefined" ? visOpt : null; } };
+  window.__fmdm = { M, NV_, get ctx() { return ctx; }, get irConv() { return irConv; }, get node() { return node; }, setG, S, presetName, presetNameRaw, isRude, NAME_WORDS, applyPreset, BUILTIN_PRESETS, togglePlay, showPage, runRandom, measureHit, NP, P };
 }
 boot();

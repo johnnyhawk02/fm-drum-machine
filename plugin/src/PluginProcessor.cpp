@@ -6,6 +6,7 @@ namespace fmdm {
 FmDmProcessor::FmDmProcessor()
     : AudioProcessor(BusesProperties().withOutput("Output", juce::AudioChannelSet::stereo(), true)) {
     pending.reserve(1 << 16);
+    std::fill(std::begin(noteOffAt), std::end(noteOffAt), -1);
     if (factoryPresets().size() > 0) model.fromPreset(factoryPresets()[0], false);
     startTimerHz(40);
 }
@@ -229,7 +230,10 @@ void FmDmProcessor::apply(const Msg& m) {
             for (auto& x : pending) apply(x);
             pending.clear();
             break;
-        case TRIG: engine->trigger(m.a, m.x, m.b); break;
+        case TRIG:
+            engine->trigger(m.a, m.x, m.b);
+            addOut(m.a, m.x, m.b, 0);
+            break;
         case LANE_STEP: s.lSteps[m.a * MAX_STEPS + m.b] = m.x; break;
         case LANE_SHAPE: s.lShape[m.a * MAX_STEPS + m.b] = (uint8_t) m.x; break;
         case LANE_FIELD:
@@ -299,6 +303,7 @@ void FmDmProcessor::prepareToPlay(double sampleRate, int samplesPerBlock) {
     seq = std::make_unique<Sequencer>(*engine, 1);
     fifo.reset();
     pending.clear();
+    nOut = 0;
     applyModelDirect();
     hostWasPlaying = startedByHost = false;
     lastBars = 0;
@@ -321,6 +326,31 @@ void FmDmProcessor::renderSpan(float* L, float* R, int off, int n) {
     engine->irInL = irWet.getWritePointer(0) + off;
     engine->irInR = irWet.getWritePointer(1) + off;
     seq->process(L + off, R + off, n);
+}
+
+// MIDI out notes, one per voice (midiVoice reads them back); open hat 46
+static constexpr int OUT_NOTES[NUM_VOICES] = { 36, 45, 48, 38, 49, 42 };
+
+void FmDmProcessor::writeMidiOut(juce::MidiBuffer& midi, int n) {
+    midi.clear(); // the notes coming in played the drums; what goes out is what fm/dm played
+    const int len = juce::jmax(1, (int) (sr * 0.05));
+    for (int i = 0; i < nOut; i++) {
+        const auto& h = outHits[i];
+        if (h.v < 0 || h.v >= NUM_VOICES) continue;
+        const int note = h.v == 5 && h.alt ? 46 : OUT_NOTES[h.v];
+        const int at = juce::jlimit(0, n - 1, h.at);
+        if (noteOffAt[note] >= 0) midi.addEvent(juce::MidiMessage::noteOff(10, note), juce::jmin(noteOffAt[note], at));
+        midi.addEvent(juce::MidiMessage::noteOn(10, note, (juce::uint8) juce::jlimit(1, 127, (int) std::lround(h.vel * 127))), at);
+        noteOffAt[note] = at + len;
+    }
+    nOut = 0;
+    for (int k = 0; k < 128; k++) {
+        if (noteOffAt[k] < 0) continue;
+        if (noteOffAt[k] < n) {
+            midi.addEvent(juce::MidiMessage::noteOff(10, k), noteOffAt[k]);
+            noteOffAt[k] = -1;
+        } else noteOffAt[k] -= n;
+    }
 }
 
 static int midiVoice(int note, int& alt) {
@@ -432,6 +462,11 @@ void FmDmProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuf
         if (to <= pos) return;
         renderSpan(L, R, pos, to - pos);
         if (seq->barOff >= 0 && barAt < 0) barAt = pos + seq->barOff;
+        for (int i = 0; i < seq->nHits; i++) {
+            const auto& h = seq->hits[i];
+            addOut(h.v, h.vel, h.alt, pos + h.off);
+        }
+        seq->nHits = 0;
         pos = to;
     };
     for (const auto meta : midi) {
@@ -452,6 +487,7 @@ void FmDmProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuf
     }
     span(n);
     seq->barOff = barAt;
+    writeMidiOut(midi, n);
 
     // the bar changed: apply what waited for it
     if (seq->bars != lastBars) {

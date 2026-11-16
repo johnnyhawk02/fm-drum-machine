@@ -123,6 +123,7 @@ function openOptions() {
       sendAll();
       try { localStorage.setItem('fmdm.autoLevel', v ? '1' : '0'); } catch {}
     }),
+    midiOutOptions(),
     h('div', 'dim', 'version ' + APP_VER),
     h('div', '', 'screen colour'),
     sw,

@@ -145,7 +145,7 @@ void Sequencer::fireStep() {
             const int rv = (int) m[M::rushVoice];
             const int rate = 1 + (int) std::floor(c * ((int) m[M::rushRate] - 1) + 0.5);
             const double v = 0.5 + 0.5 * c;
-            e.trigger(rv, v, 0);
+            hit(rv, v, 0);
             const double sl = stepLen();
             ratN = 0;
             ratI = 0;
@@ -163,7 +163,7 @@ void Sequencer::fireStep() {
             if (vl) {
                 const int f = flag[i];
                 const double ve = vl / 127.0 * ((f & F_ACCENT) ? 1 : 1 - 0.4 * acc);
-                e.trigger(v, ve, (f & F_OPEN) ? 1 : 0);
+                hit(v, ve, (f & F_OPEN) ? 1 : 0);
             }
         }
     }
@@ -212,6 +212,11 @@ void Sequencer::updateLanes(double dt) {
     }
 }
 
+void Sequencer::hit(int v, double vel, int alt) {
+    e.trigger(v, vel, alt);
+    if (nHits < MAX_HITS) hits[nHits++] = { v, (float) vel, alt, hitOff };
+}
+
 void Sequencer::process(float* outL, float* outR, int n) {
     int off = 0;
     barOff = -1; // sample offset in this block where a bar started, or -1
@@ -223,8 +228,9 @@ void Sequencer::process(float* outL, float* outR, int n) {
             if (ratI < ratN && ratT[ratI] < next) next = ratT[ratI];
             const int until = (int) std::ceil(next - clock);
             if (until <= 0) {
+                hitOff = off;
                 if (ratI < ratN && ratT[ratI] <= nextStep) {
-                    e.trigger(ratVoice, ratVel, 0);
+                    hit(ratVoice, ratVel, 0);
                     ratI++;
                 } else {
                     ratN = ratI = 0;

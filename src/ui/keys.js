@@ -75,7 +75,7 @@ const HELP = [
   ['pages', '[ and ] step through beat, voice, fx, xmod, mix, mstr, prst. shift+1 to 6 opens a drum on the voice page. o presets, / search presets.'],
   ['knobs', 'drag up and down (shift for fine), scroll, or click then use the arrow keys.'],
   ['beat', 'genre, beat, energy, fills and density make the pattern. rush rolls one drum faster near the end of every n bars while the others drop out and a high-pass rises along the rush curve.'],
-  ['midi', 'cc 1-24 perf knobs, cc 25-28 the selected sequencer length, slew, speed, depth. right-click a knob and pick midi learn to map your own cc. midi out (options) sends every drum hit as a note on channel 10: 36 drum 1, 45 drum 2, 48 drum 3, 38 snare, 49 cymbal, 42 hat (46 open).'],
+  ['midi', 'cc 1-24 perf knobs, cc 25-28 the selected sequencer length, slew, speed, depth. right-click a knob and pick midi learn to map your own cc. midi out (options) sends every drum hit as a note on channel 10: by default 36 drum 1, 45 drum 2, 48 drum 3, 38 snare, 49 cymbal, 42 hat (46 open); change them in options.'],
 ];
 function openHelp() {
   const body = h('div');

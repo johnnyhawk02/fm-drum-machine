@@ -25,7 +25,7 @@ public:
     bool hasEditor() const override { return true; }
     const juce::String getName() const override { return "fm-dm"; }
     bool acceptsMidi() const override { return true; }
-    bool producesMidi() const override { return false; }
+    bool producesMidi() const override { return true; }
     double getTailLengthSeconds() const override { return 4.0; }
     int getNumPrograms() override { return juce::jmax(1, factoryPresets().size()); }
     int getCurrentProgram() override { return program; }
@@ -80,6 +80,16 @@ private:
     juce::AbstractFifo recFifo { 1 << 21 };
     std::vector<float> recBuf = std::vector<float>(1 << 21);
     std::atomic<int> recDone { 0 };
+
+    // MIDI out: every hit the sequencer or a pad plays, as a GM drum note on channel 10 (not the notes coming in)
+    struct OutHit { int v; float vel; int alt; int at; };
+    OutHit outHits[256] {};
+    int nOut = 0;
+    int noteOffAt[128]; // samples from this block's start until a sounding note's note-off, -1 = none
+    void addOut(int v, float vel, int alt, int at) {
+        if (nOut < 256) outHits[nOut++] = { v, vel, alt, at };
+    }
+    void writeMidiOut(juce::MidiBuffer& midi, int n);
 
     // MIDI CCs for the page's MIDI learn / perf knobs
     juce::AbstractFifo ccFifo { 256 };

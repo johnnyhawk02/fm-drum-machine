@@ -58,8 +58,15 @@ public:
     bool inRush = false;
     double rushC = 0;
     int barOff = -1;
+    // hits played in process(), for MIDI out (the caller resets nHits)
+    struct Hit { int v; float vel; int alt; int off; };
+    static constexpr int MAX_HITS = 64;
+    Hit hits[MAX_HITS] {};
+    int nHits = 0;
 
 private:
+    void hit(int v, double vel, int alt);
+    int hitOff = 0;
     double stepLen() const;
     double swingOffset(int k);
     void endRush();

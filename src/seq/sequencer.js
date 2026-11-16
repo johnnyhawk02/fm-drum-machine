@@ -80,6 +80,23 @@ export class Sequencer {
     this.ratI = 0;
     this.ratVel = 1;
     this.barOff = -1;
+    // hits played in the last process() call, for MIDI out: v, vel, alt, sample offset (caller resets nHits)
+    this.hits = new Float32Array(64 * 4);
+    this.nHits = 0;
+    this.hitOff = 0;
+  }
+
+  hit(v, vel, alt) {
+    this.e.trigger(v, vel, alt);
+    this.logHit(v, vel, alt, this.hitOff);
+  }
+  logHit(v, vel, alt, off) {
+    if (this.nHits >= 64) return;
+    const i = this.nHits++ * 4;
+    this.hits[i] = v;
+    this.hits[i + 1] = vel;
+    this.hits[i + 2] = alt;
+    this.hits[i + 3] = off;
   }
 
   // ---- parameter access (g = flat index: voice v*NP+i, or NV+masterIndex)
@@ -162,7 +179,7 @@ export class Sequencer {
         const rv = m[M.rushVoice] | 0;
         const rate = 1 + Math.round(c * ((m[M.rushRate] | 0) - 1));
         const vel = 0.5 + 0.5 * c;
-        e.trigger(rv, vel, 0);
+        this.hit(rv, vel, 0);
         const sl = this.stepLen();
         this.ratN = 0;
         this.ratI = 0;
@@ -180,7 +197,7 @@ export class Sequencer {
         if (vl) {
           const f = this.flag[i];
           const vel = (vl / 127) * (f & F_ACCENT ? 1 : 1 - 0.4 * acc);
-          e.trigger(v, vel, f & F_OPEN ? 1 : 0);
+          this.hit(v, vel, f & F_OPEN ? 1 : 0);
         }
       }
     }
@@ -236,8 +253,9 @@ export class Sequencer {
         if (this.ratI < this.ratN && this.ratT[this.ratI] < next) next = this.ratT[this.ratI];
         const until = Math.ceil(next - this.clock);
         if (until <= 0) {
+          this.hitOff = off;
           if (this.ratI < this.ratN && this.ratT[this.ratI] <= this.nextStep) {
-            this.e.trigger(this.ratVoice, this.ratVel, 0);
+            this.hit(this.ratVoice, this.ratVel, 0);
             this.ratI++;
           } else {
             this.ratN = this.ratI = 0;

@@ -12,6 +12,7 @@ class ElixirProcessor extends AudioWorkletProcessor {
     this.rec = false;
     this.recBuf = new Float32Array(8192 * 2);
     this.recN = 0;
+    this.midiOut = false; // post each hit to the page, which sends it to a MIDI output
     this.port.onmessage = (ev) => this.onMsg(ev.data);
   }
 
@@ -73,6 +74,10 @@ class ElixirProcessor extends AudioWorkletProcessor {
         break;
       case 'trig':
         this.engine.trigger(m.v, m.vel, m.alt || 0);
+        s.logHit(m.v, m.vel, m.alt || 0, 0);
+        break;
+      case 'midiOut':
+        this.midiOut = !!m.on;
         break;
       case 'rec':
         // m.mode: 0 stop, 1 free, 2 exact loop of m.bars bars (starts at the next bar, or now if stopped)
@@ -115,6 +120,11 @@ class ElixirProcessor extends AudioWorkletProcessor {
     e.irInR = ri && ri[1] ? ri[1] : e.irInL;
     // a new bar is about to start if the next step is a bar start; apply pending at bar boundaries
     s.process(L, R, n);
+    if (s.nHits) {
+      // hits for MIDI out, with the audio time of the block start (the page turns it into a MIDI timestamp)
+      if (this.midiOut) this.port.postMessage({ t: 'hits', time: currentTime, sr: sampleRate, hits: s.hits.slice(0, s.nHits * 4) });
+      s.nHits = 0;
+    }
     if (s.bars !== this.lastBars) {
       this.lastBars = s.bars;
       if (this.pending.length) {

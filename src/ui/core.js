@@ -64,7 +64,7 @@ async function startAudio() {
   S.lanes.forEach((ln, l) => ln && post(laneMsg(l)));
   while (outbox.length) node.port.postMessage(outbox.shift());
 }
-const listeners = { st: [], bar: [], rec: [] };
+const listeners = { st: [], bar: [], rec: [], hits: [] };
 function on(t, f) {
   listeners[t].push(f);
 }

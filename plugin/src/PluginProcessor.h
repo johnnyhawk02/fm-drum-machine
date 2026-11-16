@@ -85,6 +85,10 @@ private:
     struct OutHit { int v; float vel; int alt; int at; };
     OutHit outHits[256] {};
     int nOut = 0;
+    std::atomic<int> outNotes[7] { 36, 45, 48, 38, 49, 42, 46 }; // per voice, then the open hat; set in options
+    juce::var notesVar() const;
+    void setNotes(const juce::var& a);
+    int noteVoice(int note, int& alt) const;
     int noteOffAt[128]; // samples from this block's start until a sounding note's note-off, -1 = none
     void addOut(int v, float vel, int alt, int at) {
         if (nOut < 256) outHits[nOut++] = { v, vel, alt, at };

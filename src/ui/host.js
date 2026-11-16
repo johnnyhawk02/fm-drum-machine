@@ -60,6 +60,7 @@ const HOST = window.__JUCE__ && window.__JUCE__.backend ? (() => {
   // the plugin answers 'hello' with its saved state (a preset, as the preset page captures it) or none
   function restore(m) {
     ctx.sampleRate = m.sr || 48000;
+    if (Array.isArray(m.midiNotes) && typeof setMidiNotes === 'function') setMidiNotes(m.midiNotes, false);
     if (m.preset) {
       outbox.length = 0; // the page's own start-up kit: the saved one replaces it
       const keep = { ...prstOpt }, al = S.opts.autoLevel;

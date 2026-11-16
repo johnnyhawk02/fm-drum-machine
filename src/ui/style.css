@@ -249,3 +249,9 @@ input[type=text], input[type=search] { background: transparent; border: 2px soli
 #quick.desk .qgrid { grid-template-columns: repeat(3, 1fr); grid-auto-rows: auto; gap: 12px; }
 #quick.desk .qb { min-height: 68px; font-size: 28px; }
 #quick.desk .qb.flip { display: none; }
+
+/* options: midi note number per voice */
+.midinotes { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: end; }
+.midinotes label { display: grid; gap: 2px; font-size: 16px; }
+.midinotes input { width: 52px; font-size: 20px; color: var(--ink); background: transparent; border: 1.5px solid var(--ink); border-radius: 3px; padding: 0 4px; }
+.midinotes input::-webkit-inner-spin-button { display: none; }

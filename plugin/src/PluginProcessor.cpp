@@ -130,6 +130,7 @@ void FmDmProcessor::fromPage(const juce::var& m) {
         auto* o = new juce::DynamicObject();
         o->setProperty("t", "state");
         o->setProperty("sr", sr);
+        o->setProperty("midiNotes", notesVar());
         if (haveState) {
             o->setProperty("preset", pageState.isObject() ? pageState : model.toPreset(model.name));
             o->setProperty("name", pageState.isObject() ? pageState["name"] : juce::var(model.name));
@@ -139,6 +140,10 @@ void FmDmProcessor::fromPage(const juce::var& m) {
     }
     if (t == "log") {
         pageLog(m["msg"].toString());
+        return;
+    }
+    if (t == "midiNotes") {
+        setNotes(m["notes"]);
         return;
     }
     if (t == "ready") {
@@ -328,8 +333,16 @@ void FmDmProcessor::renderSpan(float* L, float* R, int off, int n) {
     seq->process(L + off, R + off, n);
 }
 
-// MIDI out notes, one per voice (midiVoice reads them back); open hat 46
-static constexpr int OUT_NOTES[NUM_VOICES] = { 36, 45, 48, 38, 49, 42 };
+juce::var FmDmProcessor::notesVar() const {
+    juce::Array<juce::var> a;
+    for (auto& n : outNotes) a.add(n.load());
+    return a;
+}
+
+void FmDmProcessor::setNotes(const juce::var& v) {
+    if (auto* a = v.getArray())
+        for (int i = 0; i < juce::jmin(7, a->size()); i++) outNotes[i] = juce::jlimit(0, 127, (int) (*a)[i]);
+}
 
 void FmDmProcessor::writeMidiOut(juce::MidiBuffer& midi, int n) {
     midi.clear(); // the notes coming in played the drums; what goes out is what fm/dm played
@@ -337,7 +350,7 @@ void FmDmProcessor::writeMidiOut(juce::MidiBuffer& midi, int n) {
     for (int i = 0; i < nOut; i++) {
         const auto& h = outHits[i];
         if (h.v < 0 || h.v >= NUM_VOICES) continue;
-        const int note = h.v == 5 && h.alt ? 46 : OUT_NOTES[h.v];
+        const int note = outNotes[h.v == 5 && h.alt ? 6 : h.v].load();
         const int at = juce::jlimit(0, n - 1, h.at);
         if (noteOffAt[note] >= 0) midi.addEvent(juce::MidiMessage::noteOff(10, note), juce::jmin(noteOffAt[note], at));
         midi.addEvent(juce::MidiMessage::noteOn(10, note, (juce::uint8) juce::jlimit(1, 127, (int) std::lround(h.vel * 127))), at);
@@ -351,6 +364,18 @@ void FmDmProcessor::writeMidiOut(juce::MidiBuffer& midi, int n) {
             noteOffAt[k] = -1;
         } else noteOffAt[k] -= n;
     }
+}
+
+static int midiVoice(int note, int& alt);
+
+// incoming notes: the note numbers set in options first, then General MIDI drums and C3 upwards
+int FmDmProcessor::noteVoice(int note, int& alt) const {
+    for (int i = 0; i < 7; i++)
+        if (outNotes[i].load() == note) {
+            alt = i == 6 ? 1 : 0;
+            return i == 6 ? 5 : i;
+        }
+    return midiVoice(note, alt);
 }
 
 static int midiVoice(int note, int& alt) {
@@ -474,7 +499,7 @@ void FmDmProcessor::processBlock(juce::AudioBuffer<float>& buffer, juce::MidiBuf
         span(juce::jlimit(0, n, meta.samplePosition));
         if (msg.isNoteOn()) {
             int alt = 0;
-            const int v = midiVoice(msg.getNoteNumber(), alt);
+            const int v = noteVoice(msg.getNoteNumber(), alt);
             if (v >= 0) engine->trigger(v, msg.getFloatVelocity(), alt);
         } else if (msg.isController()) {
             auto w = ccFifo.write(1);
@@ -594,6 +619,7 @@ void FmDmProcessor::getStateInformation(juce::MemoryBlock& destData) {
     o->setProperty("app", "fm dm plugin");
     o->setProperty("program", program);
     o->setProperty("preset", pr);
+    o->setProperty("midiNotes", notesVar());
     juce::MemoryOutputStream(destData, false).writeString(juce::JSON::toString(juce::var(o), true));
 }
 
@@ -601,6 +627,7 @@ void FmDmProcessor::setStateInformation(const void* data, int sizeInBytes) {
     juce::MemoryInputStream in(data, (size_t) sizeInBytes, false);
     const auto st = juce::JSON::parse(in.readString());
     program = (int) st.getProperty("program", 0);
+    setNotes(st["midiNotes"]);
     const auto pr = st["preset"];
     if (model.fromPreset(pr, false)) {
         pageState = pr;

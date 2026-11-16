@@ -6,15 +6,28 @@ let midiMap = {};
 try { midiMap = JSON.parse(localStorage.getItem(MIDI_LS) || '{}'); } catch {}
 let midiLearn = null;
 let midiAcc = null;
-// MIDI out: General MIDI drum notes per voice (the plugin reads the same notes back in); open hat 46
-const MIDI_NOTES = [36, 45, 48, 38, 49, 42];
-const MIDI_OPEN_HAT = 46;
+// MIDI out: a note per voice plus the open hat (General MIDI drums by default; the plugin reads them back in)
+const MIDI_NOTES_DEF = [36, 45, 48, 38, 49, 42, 46];
+const MIDI_NOTE_NAMES = ['dr1', 'dr2', 'dr3', 'sn', 'cy', 'hh', 'hh open'];
+const MIDI_NOTES_LS = 'fmdm.midiNotes';
+const MIDI_NOTES = MIDI_NOTES_DEF.slice();
+try {
+  const a = JSON.parse(localStorage.getItem(MIDI_NOTES_LS) || 'null');
+  if (Array.isArray(a) && a.length === 7) a.forEach((n, i) => (MIDI_NOTES[i] = clamp(n | 0, 0, 127)));
+} catch {}
+// save: false when the plugin hands over the notes saved in the DAW project
+function setMidiNotes(a, save = true) {
+  a.forEach((n, i) => i < 7 && (MIDI_NOTES[i] = clamp(n | 0, 0, 127)));
+  if (!save) return;
+  try { localStorage.setItem(MIDI_NOTES_LS, JSON.stringify(MIDI_NOTES)); } catch {}
+  post({ t: 'midiNotes', notes: MIDI_NOTES.slice() });
+}
 const MIDI_OUT_LS = 'fmdm.midiOut';
 let midiOutId = ''; // output port id, '' = off
 try { midiOutId = localStorage.getItem(MIDI_OUT_LS) || ''; } catch {}
 function initMidi() {
   on('hits', midiHits);
-  if (HOST) return post({ t: 'midiOut', on: true }); // the plugin sends its notes to the DAW
+  if (HOST) return; // the plugin always sends its notes to the DAW, with the note numbers saved in the project
   if (!navigator.requestMIDIAccess) return;
   navigator.requestMIDIAccess().then((acc) => {
     midiAcc = acc;
@@ -41,7 +54,7 @@ function midiHits(m) {
   const h = m.hits;
   for (let i = 0; i < h.length; i += 4) {
     const v = h[i] | 0, at = m.time + h[i + 3] / m.sr;
-    const note = v === 5 && h[i + 2] ? MIDI_OPEN_HAT : MIDI_NOTES[v];
+    const note = MIDI_NOTES[v === 5 && h[i + 2] ? 6 : v];
     const vel = Math.max(1, Math.min(127, Math.round(h[i + 1] * 127)));
     let t = ts && ts.performanceTime ? ts.performanceTime + (at - ts.contextTime) * 1000 : now;
     if (t < now) t = now;
@@ -53,11 +66,12 @@ function midiHits(m) {
 }
 // options dialog: pick the output (none in the plugin, where the DAW routes it)
 function midiOutOptions() {
-  if (HOST) return h('div', '', 'midi out: notes go to the daw on channel 10');
   const box = h('div');
   box.style.display = 'grid';
   box.style.gap = '6px';
-  box.append(h('div', '', 'midi out (channel 10)'));
+  box.append(h('div', '', HOST ? 'midi out: notes go to the daw on channel 10' : 'midi out (channel 10)'));
+  box.append(midiNoteFields());
+  if (HOST) return box;
   if (!midiAcc) {
     box.append(h('div', 'dim', navigator.requestMIDIAccess ? 'no midi access' : 'this browser has no web midi'));
     return box;
@@ -104,4 +118,32 @@ function onMidi(ev) {
 function learnMidi(key) {
   midiLearn = key;
   toast(`move a midi control for ${fullName(key)}`);
+}
+
+// note number per voice (the plugin also plays the drums from these notes)
+function midiNoteFields() {
+  const row = h('div', 'midinotes');
+  const ins = [];
+  MIDI_NOTE_NAMES.forEach((name, i) => {
+    const f = h('label', '', `<span>${name}</span>`);
+    const inp = h('input');
+    inp.type = 'number';
+    inp.min = 0;
+    inp.max = 127;
+    inp.value = MIDI_NOTES[i];
+    inp.addEventListener('change', () => {
+      const a = MIDI_NOTES.slice();
+      a[i] = clamp(Math.round(+inp.value || 0), 0, 127);
+      inp.value = a[i];
+      setMidiNotes(a);
+    });
+    ins.push(inp);
+    f.append(inp);
+    row.append(f);
+  });
+  row.append(btn('reset', 'sm', () => {
+    setMidiNotes(MIDI_NOTES_DEF);
+    ins.forEach((inp, i) => (inp.value = MIDI_NOTES[i]));
+  }));
+  return row;
 }

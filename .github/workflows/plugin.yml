@@ -63,6 +63,14 @@ jobs:
           cp -R "$art/VST3/fm-dm.vst3" out/
           [ -d "$art/AU" ] && cp -R "$art/AU/fm-dm.component" out/
           if [ "$RUNNER_OS" = "macOS" ]; then cp -R "$art/Standalone/fm-dm.app" out/; else cp "$art/Standalone/"fm-dm* out/; fi
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            # the VST3 gets Resources/moduleinfo.json after JUCE signs it, which breaks the seal and Live then
+            # refuses it ("a sealed resource is missing or invalid"): sign everything again, and check
+            for b in out/fm-dm.vst3 out/fm-dm.component out/fm-dm.app; do
+              codesign --force --deep --sign - "$b"
+              codesign --verify --deep --strict --verbose=2 "$b"
+            done
+          fi
           ls -la out
           tar -czf fm-dm-${{ matrix.name }}.tgz -C out . # keeps the executable bits that artifacts drop
 

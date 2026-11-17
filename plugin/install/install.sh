@@ -16,6 +16,10 @@ case "$(uname -s)" in
     cp -R "$tmp/x/fm-dm.vst3" "$HOME/Library/Audio/Plug-Ins/VST3/"
     cp -R "$tmp/x/fm-dm.component" "$HOME/Library/Audio/Plug-Ins/Components/"
     cp -R "$tmp/x/fm-dm.app" "$HOME/Applications/"
+    # sign again where they are installed (ad-hoc): a broken seal makes Ableton drop the plugin
+    for b in "$HOME/Library/Audio/Plug-Ins/VST3/fm-dm.vst3" "$HOME/Library/Audio/Plug-Ins/Components/fm-dm.component" "$HOME/Applications/fm-dm.app"; do
+      codesign --force --deep --sign - "$b" 2>/dev/null || true
+    done
     xattr -dr com.apple.quarantine "$HOME/Library/Audio/Plug-Ins/VST3/fm-dm.vst3" "$HOME/Library/Audio/Plug-Ins/Components/fm-dm.component" "$HOME/Applications/fm-dm.app" 2>/dev/null || true
     killall -9 AudioComponentRegistrar 2>/dev/null || true # so hosts see the new AU
     echo "fm/dm installed: VST3 and AU in ~/Library/Audio/Plug-Ins, the app in ~/Applications."
